@@ -1,9 +1,8 @@
 # Netlify: a web/ mappát építi. A Supabase adatokat a Netlify felületén környezeti változóként
 # kell megadni: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY.
-# A dalok (Song Practice) mindig a SOGPRACTICE- repó aktuális állapotából kerülnek a public/dalok-ba.
 [build]
   base = "web"
-  command = "rm -rf /tmp/songpractice && git clone --depth 1 https://github.com/Beatthew/SOGPRACTICE-.git /tmp/songpractice && SONGPRACTICE_DIR=/tmp/songpractice npm run build"
+  command = "npm run build"
   publish = "dist"
 
 [build.environment]

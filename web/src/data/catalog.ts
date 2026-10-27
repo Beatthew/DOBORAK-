@@ -1,11 +1,11 @@
+import { SONGS } from '../songs';
 import { lessons } from './lessons';
-import songs from './songs.json';
 
-/** A Song Practice dalai (npm run sync-songs frissíti). */
-export const songList: { id: string; title: string; artist: string }[] = songs;
+/** A Diákjaimba behúzott dalok (scripts/import-song.mjs) — nem azonos a Song Practice teljes listájával. */
+export const songList = SONGS.map((s) => ({ id: s.id, title: s.title, artist: s.artist }));
 export const findSong = (id: string | null) => songList.find((s) => s.id === id);
-/** A dal megnyitása a beépített Song Practice-ben. */
-export const songHref = (id: string) => `./dalok/#${encodeURIComponent(id)}`;
+/** A dal gyakorló oldala az appon belül. */
+export const songPath = (id: string) => `/dal/${encodeURIComponent(id)}`;
 
 /** A dobórák órái mint technikai gyakorlatok: a hivatkozás az óra száma. */
 export const exerciseList = [...lessons]

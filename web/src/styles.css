@@ -827,3 +827,364 @@ button {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---------- Reszponzív elrendezés: telefonon egy oszlop, tableten / gépen kihasználja a szélességet ---------- */
+
+.app.wide {
+  max-width: 1180px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.form.card {
+  max-width: 640px;
+}
+
+.top-sub {
+  margin: 10px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+@media (min-width: 760px) {
+  .app.wide .top {
+    padding: 24px 40px 32px;
+  }
+  .app.wide .top h1 {
+    font-size: clamp(56px, 8vw, 96px);
+  }
+  .app.wide .tabs {
+    max-width: 560px;
+  }
+  .app.wide .search {
+    max-width: 420px;
+  }
+  .app.wide .page {
+    padding: 32px 40px 56px;
+  }
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Dal oldal (a Song Practice motorjával) ---------- */
+
+.song-page {
+  display: grid;
+  gap: 16px;
+}
+
+.pick {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+
+.pick::-webkit-scrollbar {
+  display: none;
+}
+
+.pick button {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: var(--line) solid var(--track);
+  border-radius: 6px;
+  background: transparent;
+  font-weight: 800;
+  font-size: 14px;
+  text-align: left;
+}
+
+.pick button small {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.pick button.on {
+  background: var(--mint);
+  border-color: var(--mint);
+}
+
+.pick button.var {
+  font-size: 13px;
+}
+
+.score-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px 18px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  min-width: 0;
+}
+
+.score-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.score-head h2 {
+  margin: 0;
+  font-stretch: 78%;
+  font-weight: 900;
+  font-size: 30px;
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--mint);
+}
+
+.score-head h2.is-fill {
+  color: var(--sand);
+}
+
+.score-head p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.6;
+}
+
+.barnum {
+  flex: none;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.barnum small {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.barnum b {
+  font-size: 30px;
+  font-weight: 900;
+  color: var(--mint);
+}
+
+.barnum span {
+  margin-left: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0.6;
+}
+
+.score-big {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0 4px;
+}
+
+.score-card svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.score-strip {
+  padding-top: 12px;
+  border-top: 1px solid rgba(252, 247, 255, 0.15);
+}
+
+.score-strip svg {
+  max-height: 110px;
+}
+
+.score-line {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 200px;
+  justify-content: center;
+}
+
+.score-next {
+  opacity: 0.4;
+}
+
+.score-next svg {
+  max-height: 120px;
+}
+
+.song-progress {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(252, 247, 255, 0.15);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.song-progress div {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  border-radius: 5px;
+  background: var(--mint);
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.play-btn {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--mint);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+}
+
+.play-btn svg {
+  width: 26px;
+  height: 26px;
+}
+
+.play-btn:disabled {
+  opacity: 0.4;
+  cursor: wait;
+}
+
+.transport-info {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.error-text {
+  color: #b3261e;
+}
+
+.mixer-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  padding: 18px;
+  border-radius: 6px;
+  border: var(--line) solid var(--track);
+}
+
+.slider {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.slider b {
+  color: var(--teal);
+}
+
+.slider input {
+  width: 100%;
+  accent-color: var(--teal);
+}
+
+.quick {
+  display: flex;
+  gap: 6px;
+}
+
+.quick button {
+  height: 30px;
+  padding: 0 12px;
+  border: var(--line) solid var(--track);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.quick button.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--mint);
+}
+
+.back-link {
+  justify-self: start;
+}
+
+@media (min-width: 760px) {
+  .pick {
+    margin: 0;
+    padding: 0;
+    flex-wrap: wrap;
+  }
+  .mixer-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .score-head h2 {
+    font-size: 38px;
+  }
+}
+
+@media (min-width: 1000px) {
+  .song-page {
+    grid-template-columns: 260px minmax(0, 1fr);
+    grid-template-areas:
+      'pick score'
+      'pick transport'
+      'pick mixer'
+      'back back';
+    align-items: start;
+  }
+  .pick {
+    grid-area: pick;
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+  .pick button {
+    width: 100%;
+  }
+  .score-card {
+    grid-area: score;
+  }
+  .transport {
+    grid-area: transport;
+  }
+  .mixer-card {
+    grid-area: mixer;
+  }
+  .back-link {
+    grid-area: back;
+  }
+}

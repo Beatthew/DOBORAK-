@@ -68,7 +68,7 @@ export function TeacherHome() {
               : 'Még nincs regisztrált diák. Küldd el nekik az app linkjét: regisztráció után itt jelennek meg.'}
           </p>
         ) : (
-          <div className="stack">
+          <div className="grid">
             {shown.map((s, i) => (
               <Link key={s.id} to={`/diak/${s.id}`} className={`lesson-card tone-${i % 2}`}>
                 <div className="lesson-card-num">{initials(s.full_name)}</div>
@@ -89,9 +89,9 @@ export function TeacherHome() {
           <Link className="btn ghost" to="/gyakorlatok">
             Dobórák
           </Link>
-          <a className="btn ghost" href="./dalok/">
+          <Link className="btn ghost" to="/dalok">
             Dalok
-          </a>
+          </Link>
           <button className="btn ghost" onClick={() => void signOut()}>
             Kilépés
           </button>

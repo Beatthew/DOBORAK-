@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { findExercise, findSong, songHref } from '../data/catalog';
+import { findExercise, findSong, songPath } from '../data/catalog';
 import { KIND_LABEL, openFile, type Material } from '../lib/supabase';
 
 interface Props {
@@ -8,7 +8,7 @@ interface Props {
   onDelete?: () => void;
 }
 
-/** Egy kiadott anyag: dal → Song Practice, gyakorlat → dobóra, fájl → letöltés, link → megnyitás. */
+/** Egy kiadott anyag: dal → a dal gyakorló oldala, gyakorlat → dobóra, fájl → letöltés, link → megnyitás. */
 export function MaterialCard({ m, onDelete }: Props) {
   const song = m.kind === 'song' ? findSong(m.ref) : undefined;
   const ex = m.kind === 'exercise' ? findExercise(m.ref) : undefined;
@@ -23,7 +23,7 @@ export function MaterialCard({ m, onDelete }: Props) {
       {song && song.artist && <p className="mat-sub">{song.artist}</p>}
       {m.note && <p className="mat-note">{m.note}</p>}
       <div className="mat-actions">
-        {song && <a className="btn small primary" href={songHref(song.id)}>Gyakorlás</a>}
+        {song && <Link className="btn small primary" to={songPath(song.id)}>Gyakorlás</Link>}
         {ex && <Link className="btn small primary" to={`/lesson/${ex.ref}`}>Megnyitás</Link>}
         {m.file_path && (
           <button className="btn small" onClick={() => openFile(m.file_path!)}>

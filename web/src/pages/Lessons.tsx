@@ -13,7 +13,7 @@ export function Lessons() {
         {ordered.length === 0 ? (
           <p className="muted">{t.noLessons}</p>
         ) : (
-          <div className="stack">
+          <div className="grid">
             {ordered.map((lesson, i) => (
               <Link key={lesson.id} to={`/lesson/${lesson.number}`} className={`lesson-card tone-${i % 2}`}>
                 <div className="lesson-card-num">{lesson.number}</div>

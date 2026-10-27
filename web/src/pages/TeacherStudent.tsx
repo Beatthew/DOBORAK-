@@ -96,7 +96,7 @@ export function TeacherStudent() {
         {tab === 'lessons' ? (
           <LessonsList lessons={lessons} materials={materials} onDelete={(m) => void del(m)} onEdit={edit} />
         ) : listed.length ? (
-          <div className="stack">
+          <div className="grid">
             {listed.map((m) => (
               <MaterialCard key={m.id} m={m} onDelete={() => void del(m)} />
             ))}

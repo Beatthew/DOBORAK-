@@ -63,7 +63,7 @@ export function StudentHome() {
 function List({ items, empty }: { items: Material[]; empty: string }) {
   if (!items.length) return <p className="muted">{empty}</p>;
   return (
-    <div className="stack">
+    <div className="grid">
       {items.map((m) => (
         <MaterialCard key={m.id} m={m} />
       ))}
@@ -84,7 +84,7 @@ export function LessonsList({ lessons, materials, onDelete, onEdit }: LessonsLis
   const loose = materials.filter((m) => m.kind === 'material' && !m.lesson_id);
   if (!lessons.length && !loose.length) return <p className="muted">Még nincs rögzített órád.</p>;
   return (
-    <div className="stack">
+    <div className="grid">
       {lessons.map((l) => {
         const att = materials.filter((m) => m.lesson_id === l.id);
         const dob = findExercise(l.doborak);

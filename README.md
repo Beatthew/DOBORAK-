@@ -11,8 +11,10 @@ A dobórák app és a Song Practice összevonása, bejelentkezéssel (Supabase).
 
 - `web/` – az app (React + Vite). A dobórák kódja `src/` alatt, az új oldalak: `pages/Login`, `pages/StudentHome`,
   `pages/TeacherHome`, `pages/TeacherStudent`.
-- `web/public/dalok/` – a Song Practice másolata (`npm run sync-songs` frissíti a `SONGPRACTICE APP/songpractice-netlify`-ból,
-  és kiírja a dalok listáját a `src/data/songs.json`-ba). Gitbe nem kerül; Netlify-on a build a SOGPRACTICE- repóból klónozza.
+- `web/src/songs/` – a dalok: a Song Practice motorja (`engine.ts`: lejátszás, lassítás, metronóm; `notation.ts`: kotta)
+  és a behúzott dalok kottája (`data/`). A hangsávok: `web/public/songs/`.
+  **Új dal behúzása** a Song Practice-ből (ami ott új, attól még nem kerül ide):
+  `cd web` → `npm run import-song -- <dal id>` (pl. `npm run import-song -- skyfall`). Újra behúzva frissül.
 - `supabase/schema.sql` – adatbázis, tárhely, jogosultságok.
 
 ## Supabase beállítása (egyszer)

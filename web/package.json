@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "sync-songs": "node scripts/sync-songs.mjs",
+    "import-song": "node scripts/import-song.mjs",
     "dev": "vite",
-    "build": "node scripts/sync-songs.mjs && tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
