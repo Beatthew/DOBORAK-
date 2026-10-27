@@ -1,0 +1,829 @@
+:root {
+  --mint: #70f8ba;
+  --teal: #426b69;
+  --ink: #000807;
+  --paper: #fcf7ff;
+  --sand: #f0dcca;
+  --track: #d9d2dc;
+  --line: 1.5px;
+  font-family: 'Archivo', system-ui, sans-serif;
+  color: var(--ink);
+  -webkit-text-size-adjust: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--ink);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.on-dark :focus-visible,
+.tone-1 :focus-visible,
+.tone-2 :focus-visible {
+  outline-color: var(--mint);
+}
+
+.app {
+  max-width: 480px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Groove colour pairs, by position in the lesson */
+.tone-0 { --bg: var(--mint); --fg: var(--ink); }
+.tone-1 { --bg: var(--teal); --fg: var(--paper); }
+.tone-2 { --bg: var(--ink); --fg: var(--mint); }
+.tone-3 { --bg: var(--sand); --fg: var(--ink); }
+
+.display {
+  margin: 0;
+  font-stretch: 78%;
+  font-weight: 900;
+  line-height: 0.9;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Header ---------- */
+
+.top {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 20px 20px 28px;
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.top-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.top-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 14px 0 8px;
+  margin-left: -8px;
+  border: 0;
+  background: transparent;
+  color: var(--paper);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.top h1 {
+  margin-top: 20px;
+  font-size: clamp(44px, 16vw, 80px);
+  letter-spacing: -0.01em;
+  color: var(--mint);
+}
+
+.top-sub {
+  margin: 10px 0 0;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.lang-switch {
+  display: flex;
+  border: var(--line) solid var(--paper);
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.lang-switch button {
+  width: 52px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--paper);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.lang-switch button[aria-pressed='true'] {
+  background: var(--mint);
+  color: var(--ink);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 22px;
+  background: var(--bg, var(--sand));
+  color: var(--fg, var(--ink));
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.chip.tone-2 {
+  box-shadow: inset 0 0 0 var(--line) var(--mint);
+}
+
+/* ---------- Buttons ---------- */
+
+.play {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--fg, var(--ink));
+  color: var(--bg, var(--mint));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-sm {
+  width: 44px;
+  height: 44px;
+  background: var(--ink);
+  color: var(--mint);
+}
+
+/* ---------- Groove block ---------- */
+
+.groove-block {
+  background: var(--bg);
+  color: var(--fg);
+  padding: 28px 20px 24px;
+  scroll-margin-top: 0;
+}
+
+.groove-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.groove-head h2,
+.exercises h2 {
+  margin: 0;
+  font-stretch: 78%;
+  font-weight: 900;
+  font-size: clamp(40px, 14vw, 56px);
+  line-height: 0.9;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.groove-grid,
+.grid-count {
+  display: grid;
+  grid-template-columns: 54px repeat(8, minmax(0, 1fr));
+}
+
+.groove-grid {
+  grid-auto-rows: 44px;
+  border-bottom: var(--line) solid currentColor;
+}
+
+.grid-label,
+.grid-cell {
+  display: flex;
+  align-items: center;
+  border: 0;
+  border-top: var(--line) solid currentColor;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  min-width: 0;
+}
+
+.grid-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.grid-cell {
+  justify-content: center;
+}
+
+.grid-cell.beat {
+  border-left: var(--line) solid currentColor;
+}
+
+.mark-x {
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.mark-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.grid-count {
+  height: 30px;
+  align-items: center;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.songs {
+  margin-top: 20px;
+}
+
+.songs-toggle {
+  width: 100%;
+  min-height: 52px;
+  padding: 0;
+  border: 0;
+  border-top: var(--line) solid currentColor;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.songs ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.songs li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 6px 0;
+  border-top: var(--line) solid currentColor;
+}
+
+.song-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.song-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.song-artist {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.spotify {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 22px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* ---------- Fills ---------- */
+
+.fills-intro {
+  padding: 24px 20px;
+  background: var(--paper);
+}
+
+.fills-intro p {
+  margin: 12px 0 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.staff-key {
+  display: block;
+  width: 100%;
+  max-width: 390px;
+  height: auto;
+}
+
+.fill-block + .fill-block {
+  border-top: var(--line) solid var(--mint);
+}
+
+.fill-sub {
+  margin-top: 6px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.staff {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.row-lead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.row-lead svg {
+  width: 32px;
+  height: 25px;
+}
+
+/* ---------- Exercises ---------- */
+
+.exercises {
+  flex: 1;
+  background: var(--sand);
+  padding: 28px 20px 40px;
+}
+
+.exercises h2 {
+  margin-bottom: 16px;
+  font-size: clamp(32px, 11.5vw, 48px);
+}
+
+.exercise-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.exercise {
+  background: var(--paper);
+  border-radius: 6px;
+  padding: 14px;
+}
+
+.exercise-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.exercise-num {
+  min-width: 26px;
+  font-stretch: 78%;
+  font-weight: 900;
+  font-size: 44px;
+  line-height: 1;
+}
+
+.exercise-head h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.exercise-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 6px;
+  align-items: stretch;
+  margin-top: 12px;
+}
+
+.exercise-row.with-crash {
+  grid-template-columns: minmax(0, 1fr) 72px minmax(0, 1fr);
+  column-gap: 6px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 4px;
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+  text-align: center;
+}
+
+.tile svg {
+  max-width: 100%;
+}
+
+.tile-groove {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tile-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tile-swap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tile-crash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 4px;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+  overflow: hidden;
+}
+
+.track-fill {
+  height: 100%;
+  background: var(--ink);
+  transition: width 0.2s linear;
+}
+
+.exercise-note {
+  margin: 10px 0 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* ---------- Lesson list ---------- */
+
+.page {
+  flex: 1;
+  padding: 24px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lesson-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 6px;
+  background: var(--bg, var(--mint));
+  color: var(--fg, var(--ink));
+  text-decoration: none;
+}
+
+.lesson-card-num {
+  font-stretch: 78%;
+  font-weight: 900;
+  font-size: 64px;
+  line-height: 0.9;
+  min-width: 44px;
+}
+
+.lesson-card-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.lesson-card-title {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.lesson-card-sub {
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.muted {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track-fill {
+    transition: none;
+  }
+}
+
+/* ---------- Diákjaim: belépés, tanári és diák felület ---------- */
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-top: 18px;
+}
+
+.tabs button {
+  flex: 1;
+  height: 36px;
+  border: var(--line) solid rgba(252, 247, 255, 0.35);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.tabs button.on {
+  background: var(--mint);
+  border-color: var(--mint);
+  color: var(--ink);
+}
+
+.search {
+  width: 100%;
+  margin-top: 18px;
+  height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(252, 247, 255, 0.12);
+  color: var(--paper);
+}
+
+.search::placeholder {
+  color: rgba(252, 247, 255, 0.55);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: var(--line) solid var(--ink);
+  border-radius: 6px;
+  background: transparent;
+  font-weight: 800;
+  font-size: 15px;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.btn.primary {
+  background: var(--ink);
+  color: var(--mint);
+}
+
+.btn.ghost {
+  border-color: var(--track);
+}
+
+.btn.small {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.signout {
+  align-self: flex-start;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form.card {
+  padding: 16px;
+  border-radius: 6px;
+  background: #fff;
+  border: var(--line) solid var(--track);
+}
+
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.form input,
+.form select,
+.form textarea {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: var(--line) solid var(--track);
+  border-radius: 6px;
+  background: #fff;
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.form input[type='file'] {
+  padding: 8px;
+}
+
+.seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.seg button {
+  height: 38px;
+  border: var(--line) solid var(--track);
+  border-radius: 6px;
+  background: transparent;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.seg button.on {
+  background: var(--mint);
+  border-color: var(--mint);
+}
+
+.note-box,
+.error-box {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.45;
+  background: var(--sand);
+}
+
+.error-box {
+  background: #ffd9d6;
+}
+
+.lesson-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 6px;
+  border: var(--line) solid var(--track);
+}
+
+.lesson-box-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.lesson-box-head b {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.lesson-box-head span {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.lesson-notes {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.mat {
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: #fff;
+  border: var(--line) solid var(--track);
+  border-left: 5px solid var(--teal);
+}
+
+.mat-song {
+  border-left-color: var(--mint);
+}
+
+.mat-exercise {
+  border-left-color: var(--sand);
+}
+
+.mat-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--teal);
+}
+
+.mat h3 {
+  margin: 4px 0 0;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.mat-sub,
+.mat-note {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.mat-note {
+  margin-top: 6px;
+  white-space: pre-wrap;
+}
+
+.mat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.mat-actions .btn {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
