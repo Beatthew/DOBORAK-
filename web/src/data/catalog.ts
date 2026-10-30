@@ -2,7 +2,7 @@ import { SONGS } from '../songs';
 import { lessons } from './lessons';
 
 /** A BEATHUBba behúzott dalok (scripts/import-song.mjs) — nem azonos a Song Practice teljes listájával. */
-export const songList = SONGS.map((s) => ({ id: s.id, title: s.title, artist: s.artist }));
+export const songList = SONGS.map((s) => ({ id: s.id, title: s.title, artist: s.artist, bpm: s.bpm }));
 export const findSong = (id: string | null) => songList.find((s) => s.id === id);
 /** A dal gyakorló oldala az appon belül. */
 export const songPath = (id: string) => `/dal/${encodeURIComponent(id)}`;

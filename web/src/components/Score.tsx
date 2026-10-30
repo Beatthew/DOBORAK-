@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { preloadSamples, SCORE_DIV, scoreBars } from '../audio/engine';
 import { usePlayback } from '../audio/playback';
+import { useI18n } from '../i18n';
 import { rowSVG, setPlayhead } from '../songs/notation';
 import type { Beats } from '../songs/types';
 import { PlayIcon, StopIcon } from './Icons';
@@ -47,6 +48,7 @@ interface PlayerProps {
 
 /** Kotta lejátszógombbal és tempóval: visszahallgatható, a lejátszófej követi a kottát. */
 export function ScorePlayer({ id, bars, bpm, onBpm }: PlayerProps) {
+  const { t, pick } = useI18n();
   const { playingId, step, toggle, stop } = usePlayback();
   const playId = `score:${id}`;
   const playing = playingId === playId;
@@ -67,14 +69,14 @@ export function ScorePlayer({ id, bars, bpm, onBpm }: PlayerProps) {
         <button
           type="button"
           className="play-btn"
-          aria-label={playing ? 'Megállítás' : 'Lejátszás'}
+          aria-label={playing ? t.stop : t.play}
           onClick={() => toggle(playId, scoreBars(bars), { bpm, loop: true, div: SCORE_DIV, track: true })}
         >
           {playing ? <StopIcon /> : <PlayIcon />}
         </button>
         <label className="slider tempo">
           <span>
-            Tempó <b>{bpm} BPM</b>
+            {pick('Tempó', 'Tempo')} <b>{bpm} BPM</b>
           </span>
           <input type="range" min={40} max={200} value={bpm} onChange={(e) => onBpm(+e.target.value)} />
         </label>

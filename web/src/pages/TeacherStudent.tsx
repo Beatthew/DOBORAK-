@@ -3,18 +3,20 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { MaterialCard } from '../components/MaterialCard';
 import { TopBar } from '../components/TopBar';
 import { exerciseList, songList } from '../data/catalog';
+import { useI18n } from '../i18n';
 import { KIND_LABEL, supabase, type Kind, type LessonRow, type Material, type Profile } from '../lib/supabase';
 import { LessonsList } from './StudentHome';
 
 type Tab = 'lessons' | 'songs' | 'exercises';
-const TABS: [Tab, string][] = [
-  ['lessons', 'Órák'],
-  ['songs', 'Dalok'],
-  ['exercises', 'Gyakorlatok'],
+const TABS: [Tab, string, string][] = [
+  ['lessons', 'Órák', 'Lessons'],
+  ['songs', 'Dalok', 'Songs'],
+  ['exercises', 'Gyakorlatok', 'Exercises'],
 ];
 
 /** Egy diák a tanár szemével: órái, kiadott dalai és gyakorlatai + új óra (LessonComposer) és fájl kiadása. */
 export function TeacherStudent() {
+  const { pick, text } = useI18n();
   const { id = '' } = useParams();
   const [student, setStudent] = useState<Profile | null>(null);
   const [lessons, setLessons] = useState<LessonRow[]>([]);
@@ -40,7 +42,7 @@ export function TeacherStudent() {
   }, [load]);
 
   const del = async (m: Material) => {
-    if (!supabase || !confirm(`Törlöd: ${m.title || KIND_LABEL[m.kind]}?`)) return;
+    if (!supabase || !confirm(`${pick('Törlöd', 'Delete')}: ${text(m.title || KIND_LABEL[m.kind])}?`)) return;
     if (m.file_path) await supabase.storage.from('materials').remove([m.file_path]);
     await supabase.from('materials').delete().eq('id', m.id);
     void load();
@@ -49,15 +51,16 @@ export function TeacherStudent() {
     setForm(null);
     void load();
   };
-  const listed = materials.filter((m) => m.kind === (tab === 'songs' ? 'song' : 'exercise'));
+  // ami egy órához van csatolva, az az óra alatt látszik; a Gyakorlatok fülön csak a külön kiadott gyakorlatok
+  const listed = materials.filter((m) => (tab === 'songs' ? m.kind === 'song' : m.kind === 'exercise' && !m.lesson_id));
 
   return (
     <>
-      <TopBar title={student?.full_name || 'Diák'} backTo="/diakok" backLabel="Diákjaim">
+      <TopBar title={student?.full_name || pick('Diák', 'Student')} backTo="/diakok" backLabel={pick('Diákjaim', 'My students')}>
         <nav className="tabs">
-          {TABS.map(([t, label]) => (
+          {TABS.map(([t, huLabel, enLabel]) => (
             <button key={t} className={t === tab ? 'on' : ''} onClick={() => setTab(t)}>
-              {label}
+              {pick(huLabel, enLabel)}
             </button>
           ))}
         </nav>
@@ -84,7 +87,7 @@ export function TeacherStudent() {
             />
             <Link className="add-tile composer-add" to={`/diak/${id}/uj-ora`}>
               <span className="add-plus">+</span>
-              <span className="item-tile-title">Új óra</span>
+              <span className="item-tile-title">{pick('Új óra', 'New lesson')}</span>
             </Link>
           </>
         ) : listed.length ? (
@@ -94,10 +97,10 @@ export function TeacherStudent() {
             ))}
           </div>
         ) : (
-          <p className="muted">Még nincs kiadva semmi.</p>
+          <p className="muted">{pick('Még nincs kiadva semmi.', 'Nothing assigned yet.')}</p>
         )}
         <button className="btn ghost big" onClick={() => setForm(form ? null : 'material')}>
-          + Fájl vagy link kiadása
+          {pick('+ Fájl vagy link kiadása', '+ Assign a file or link')}
         </button>
       </main>
     </>
@@ -106,6 +109,7 @@ export function TeacherStudent() {
 
 /** A még nem regisztrált diák email címe: ezzel a címmel regisztrálva kapcsolódik a fiókja ehhez a profilhoz. */
 function StudentEmail({ student, onSaved }: { student: Profile; onSaved: () => void }) {
+  const { pick } = useI18n();
   const [email, setEmail] = useState(student.email);
   const [busy, setBusy] = useState(false);
   const value = email.trim().toLowerCase();
@@ -116,18 +120,18 @@ function StudentEmail({ student, onSaved }: { student: Profile; onSaved: () => v
     setBusy(true);
     const { error } = await supabase.from('profiles').update({ email: value }).eq('id', student.id);
     setBusy(false);
-    if (error) return alert(/duplicate|unique/i.test(error.message) ? 'Ezzel az email címmel már van diák.' : error.message);
+    if (error) return alert(/duplicate|unique/i.test(error.message) ? pick('Ezzel az email címmel már van diák.', 'There is already a student with this email.') : error.message);
     onSaved();
   };
 
   return (
     <form className="form card" onSubmit={submit}>
       <label>
-        Email (ezzel fog regisztrálni)
+        {pick('Email (ezzel fog regisztrálni)', 'Email (they will sign up with this)')}
         <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
       </label>
       <button className="btn primary" disabled={busy || value === student.email}>
-        {busy ? 'Mentés…' : 'Email mentése'}
+        {busy ? pick('Mentés…', 'Saving…') : pick('Email mentése', 'Save email')}
       </button>
     </form>
   );
@@ -141,6 +145,7 @@ interface MaterialFormProps {
 }
 
 function MaterialForm({ studentId, lessons, initialKind, onDone }: MaterialFormProps) {
+  const { pick, text, locale } = useI18n();
   const [kind, setKind] = useState<Kind>(initialKind);
   const [title, setTitle] = useState('');
   const [ref, setRef] = useState('');
@@ -153,9 +158,9 @@ function MaterialForm({ studentId, lessons, initialKind, onDone }: MaterialFormP
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!supabase) return;
-    if (kind === 'song' && !ref) return alert('Válassz dalt.');
+    if (kind === 'song' && !ref) return alert(pick('Válassz dalt.', 'Choose a song.'));
     if (kind !== 'song' && !ref && !file && !link.trim() && !note.trim() && !title.trim())
-      return alert('Adj meg legalább egy fájlt, linket vagy jegyzetet.');
+      return alert(pick('Adj meg legalább egy fájlt, linket vagy jegyzetet.', 'Add at least a file, a link or a note.'));
     setBusy(true);
     let filePath: string | null = null;
     if (file) {
@@ -165,7 +170,7 @@ function MaterialForm({ studentId, lessons, initialKind, onDone }: MaterialFormP
       const up = await supabase.storage.from('materials').upload(filePath, file, { contentType: file.type || undefined });
       if (up.error) {
         setBusy(false);
-        return alert(`A feltöltés nem sikerült: ${up.error.message}`);
+        return alert(`${pick('A feltöltés nem sikerült', 'Upload failed')}: ${up.error.message}`);
       }
     }
     const { error } = await supabase.from('materials').insert({
@@ -197,15 +202,15 @@ function MaterialForm({ studentId, lessons, initialKind, onDone }: MaterialFormP
               setRef('');
             }}
           >
-            {KIND_LABEL[k]}
+            {text(KIND_LABEL[k])}
           </button>
         ))}
       </div>
       {kind === 'song' && (
         <label>
-          Dal
+          {pick('Dal', 'Song')}
           <select required value={ref} onChange={(e) => setRef(e.target.value)}>
-            <option value="">– válassz –</option>
+            <option value="">{pick('– válassz –', '– choose –')}</option>
             {songList.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.title}
@@ -217,48 +222,48 @@ function MaterialForm({ studentId, lessons, initialKind, onDone }: MaterialFormP
       )}
       {kind === 'exercise' && (
         <label>
-          Kész óra (vagy saját gyakorlat fájlként lent)
+          {pick('Kész óra (vagy saját gyakorlat fájlként lent)', 'Ready-made lesson (or your own exercise as a file below)')}
           <select value={ref} onChange={(e) => setRef(e.target.value)}>
-            <option value="">– nincs, saját fájl / jegyzet –</option>
+            <option value="">{pick('– nincs, saját fájl / jegyzet –', '– none, own file / note –')}</option>
             {exerciseList.map((x) => (
               <option key={x.ref} value={x.ref}>
-                {x.title}
+                {text(x.title)}
               </option>
             ))}
           </select>
         </label>
       )}
       <label>
-        Cím{kind === 'song' ? ' (nem kötelező)' : ''}
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === 'material' ? 'pl. Órai kotta, házi feladat' : ''} />
+        {pick('Cím', 'Title')}{kind === 'song' ? pick(' (nem kötelező)', ' (optional)') : ''}
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === 'material' ? pick('pl. Órai kotta, házi feladat', 'e.g. Lesson sheet, homework') : ''} />
       </label>
       <label>
-        Melyik órához
+        {pick('Melyik órához', 'For which lesson')}
         <select value={lessonId} onChange={(e) => setLessonId(e.target.value)}>
-          <option value="">– egyikhez sem –</option>
+          <option value="">{pick('– egyikhez sem –', '– none –')}</option>
           {lessons.map((l) => (
             <option key={l.id} value={l.id}>
-              {new Date(l.date).toLocaleDateString('hu-HU')} · {l.title || 'Óra'}
+              {new Date(l.date).toLocaleDateString(locale)} · {text(l.title) || pick('Óra', 'Lesson')}
             </option>
           ))}
         </select>
       </label>
       {kind !== 'song' && (
         <label>
-          Fájl (kotta, hang, videó…)
+          {pick('Fájl (kotta, hang, videó…)', 'File (sheet, audio, video…)')}
           <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </label>
       )}
       <label>
-        Link (pl. YouTube)
+        {pick('Link (pl. YouTube)', 'Link (e.g. YouTube)')}
         <input type="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" />
       </label>
       <label>
-        Megjegyzés
-        <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="pl. 80 BPM-ről indulj, a fillre figyelj" />
+        {pick('Megjegyzés', 'Note')}
+        <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder={pick('pl. 80 BPM-ről indulj, a fillre figyelj', 'e.g. start at 80 BPM, watch the fill')} />
       </label>
       <button className="btn primary" disabled={busy}>
-        {busy ? 'Mentés…' : 'Kiadás a diáknak'}
+        {busy ? pick('Mentés…', 'Saving…') : pick('Kiadás a diáknak', 'Assign to student')}
       </button>
     </form>
   );

@@ -4,11 +4,11 @@ import { lessons } from '../data/lessons';
 import { useI18n } from '../i18n';
 
 export function Lessons() {
-  const { t } = useI18n();
+  const { t, pick } = useI18n();
   const ordered = [...lessons].sort((a, b) => a.number - b.number);
   return (
     <>
-      <TopBar title="Kész órák" backTo="/tananyag" backLabel="Tananyag" />
+      <TopBar title={pick('Kész órák', 'Ready-made lessons')} backTo="/tananyag" backLabel={pick('Tananyag', 'Library')} />
       <main className="page">
         {ordered.length === 0 ? (
           <p className="muted">{t.noLessons}</p>

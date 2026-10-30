@@ -4,11 +4,11 @@ import { Score, ScorePlayer } from '../components/Score';
 import { TopBar } from '../components/TopBar';
 import { exerciseList, findExercise, findSong, songPath } from '../data/catalog';
 import { subdivisionOf, SUBDIVISIONS, toBeats, useLibrary, type ScoreBar, type Subdivision } from '../data/library';
+import { useI18n } from '../i18n';
 import { KIND_LABEL, supabase, type LessonRow, type Material, type Profile } from '../lib/supabase';
 import { SONGS } from '../songs';
 
 const READY_LESSONS = 'kesz-orak';
-const MISSING_COLUMNS = 'A mentéshez egyszer le kell futtatni a supabase/005_ora_tananyagbol.sql fájlt a Supabase SQL Editorban.';
 const today = () => new Date().toISOString().slice(0, 10);
 
 /** Egy tétel az órán: a tananyagból most választott, vagy a már elmentett anyag (materialId). */
@@ -58,6 +58,7 @@ function fromMaterial(m: Material): Entry {
 /** Új óra összerakása vagy egy meglévő szerkesztése: a tananyagból böngészve kijelölt tételek és az összefoglaló.
  *  A böngészés az URL-ben van (?t=...), így a telefon vissza gombja is lépésenként visz vissza. */
 export function LessonComposer() {
+  const { t, pick, text } = useI18n();
   const { id = '', lessonId } = useParams();
   const nav = useNavigate();
   const [params] = useSearchParams();
@@ -109,7 +110,7 @@ export function LessonComposer() {
     if (draft && !lessonId) sessionStorage.setItem(storageKey, JSON.stringify(draft));
   }, [draft, lessonId, storageKey]);
 
-  const heading = number ? `${number}. óra` : 'Óra';
+  const heading = number ? t.lessonN(number) : pick('Óra', 'Lesson');
   const change = (patch: Partial<Draft>) => setDraft((d) => (d ? { ...d, ...patch } : d));
   const toggle = (entry: Entry) =>
     setDraft((d) =>
@@ -127,15 +128,16 @@ export function LessonComposer() {
 
   const save = async () => {
     if (!supabase || !draft || !number) return;
-    if (!draft.entries.length && !draft.notes.trim()) return alert('Válassz tananyagot, vagy írj összefoglalót.');
+    if (!draft.entries.length && !draft.notes.trim()) return alert(pick('Válassz tananyagot, vagy írj összefoglalót.', 'Choose library items or write a summary.'));
     setBusy(true);
     const fail = (message: string) => {
       setBusy(false);
-      alert(/bars|bpm|materials_kind_check/.test(message) ? MISSING_COLUMNS : message);
+      alert(/bars|bpm|materials_kind_check/.test(message) ? pick('A mentéshez egyszer le kell futtatni a supabase/005_ora_tananyagbol.sql fájlt a Supabase SQL Editorban.', 'To save, run supabase/005_ora_tananyagbol.sql once in the Supabase SQL Editor.') : message);
     };
     const row = {
       date: draft.date,
-      title: draft.title.trim() || heading,
+      // magyarul mentve: megjelenítéskor a text() a nézet nyelvére fordítja
+      title: draft.title.trim() || `${number}. óra`,
       notes: draft.notes.trim(),
       doborak: draft.entries.find((e) => e.doborak)?.ref ?? null,
     };
@@ -152,7 +154,7 @@ export function LessonComposer() {
       if (e.image) {
         filePath = `${id}/${Date.now()}-${e.image.split('/').pop()}`;
         const copy = await supabase.storage.from('materials').copy(e.image, filePath);
-        if (copy.error) return fail(`A kottakép másolása nem sikerült: ${copy.error.message}`);
+        if (copy.error) return fail(`${pick('A kottakép másolása nem sikerült', 'Copying the sheet image failed')}: ${copy.error.message}`);
       }
       rows.push({
         student_id: id,
@@ -185,19 +187,19 @@ export function LessonComposer() {
   };
 
   const removeLesson = async () => {
-    if (!supabase || !lesson || !confirm('Törlöd ezt az órát? (A hozzá csatolt anyagok megmaradnak, csak az órához kötés szűnik meg.)')) return;
+    if (!supabase || !lesson || !confirm(pick('Törlöd ezt az órát? (A hozzá csatolt anyagok megmaradnak, csak az órához kötés szűnik meg.)', 'Delete this lesson? (Its materials stay, they are just no longer tied to the lesson.)'))) return;
     const { error } = await supabase.from('lessons').delete().eq('id', lesson.id);
     if (error) return alert(error.message);
     nav(`/diak/${id}`, { replace: true });
   };
 
-  const name = student?.full_name || 'Diák';
+  const name = student?.full_name || pick('Diák', 'Student');
   if (!draft) {
     return (
       <>
         <TopBar title={heading} backTo={`/diak/${id}`} backLabel={name} />
         <main className="page">
-          <p className="muted">{lessonId && number === null && student ? 'Ez az óra nem található.' : 'Betöltés…'}</p>
+          <p className="muted">{lessonId && number === null && student ? t.lessonMissing : pick('Betöltés…', 'Loading…')}</p>
         </main>
       </>
     );
@@ -227,34 +229,34 @@ export function LessonComposer() {
           ))}
           <button className="add-tile composer-add" onClick={() => go('kategoriak')}>
             <span className="add-plus">+</span>
-            <span className="item-tile-title">{draft.entries.length ? 'Még hozzáadok' : 'Tananyag hozzáadása'}</span>
+            <span className="item-tile-title">{draft.entries.length ? pick('Még hozzáadok', 'Add more') : pick('Tananyag hozzáadása', 'Add from library')}</span>
           </button>
         </div>
         <div className="form composer-fields">
           <label>
-            Dátum
+            {pick('Dátum', 'Date')}
             <input type="date" required value={draft.date} onChange={(e) => change({ date: e.target.value })} />
           </label>
           <label>
-            Cím (nem kötelező)
-            <input placeholder={heading} value={draft.title} onChange={(e) => change({ title: e.target.value })} />
+            {pick('Cím (nem kötelező)', 'Title (optional)')}
+            <input placeholder={heading} value={text(draft.title)} onChange={(e) => change({ title: e.target.value })} />
           </label>
           <label className="composer-notes">
-            Összefoglaló
-            <textarea rows={3} placeholder="Mit vettünk, mire figyeljen…" value={draft.notes} onChange={(e) => change({ notes: e.target.value })} />
+            {pick('Összefoglaló', 'Summary')}
+            <textarea rows={3} placeholder={pick('Mit vettünk, mire figyeljen…', 'What we covered, what to watch for…')} value={draft.notes} onChange={(e) => change({ notes: e.target.value })} />
           </label>
         </div>
         <div className="composer-actions">
           {lesson && (
             <button className="btn ghost composer-delete" onClick={() => void removeLesson()}>
-              Óra törlése
+              {pick('Óra törlése', 'Delete lesson')}
             </button>
           )}
           <Link className="btn" to={`/diak/${id}`}>
-            Vissza
+            {t.back}
           </Link>
           <button className="btn primary" disabled={busy} onClick={() => void save()}>
-            {busy ? 'Mentés…' : 'Mentés'}
+            {busy ? pick('Mentés…', 'Saving…') : pick('Mentés', 'Save')}
           </button>
         </div>
       </main>
@@ -263,17 +265,18 @@ export function LessonComposer() {
 }
 
 function EntryCard({ entry: e, onRemove }: { entry: Entry; onRemove: () => void }) {
+  const { pick, text } = useI18n();
   const beats = useMemo(() => (e.bars ?? []).map(toBeats), [e.bars]);
   const [bpm, setBpm] = useState(e.bpm ?? 90);
   return (
     <article className="composer-card">
       <header>
         <div>
-          <h3>{e.title}</h3>
-          {e.sub && <p>{e.sub}</p>}
+          <h3>{text(e.title)}</h3>
+          {e.sub && <p>{text(e.sub)}</p>}
         </div>
-        <button className="btn small ghost" aria-label={`Levétel: ${e.title}`} onClick={onRemove}>
-          Levétel
+        <button className="btn small ghost" aria-label={`${pick('Levétel', 'Remove')}: ${text(e.title)}`} onClick={onRemove}>
+          {pick('Levétel', 'Remove')}
         </button>
       </header>
       <div className="composer-card-body">
@@ -281,14 +284,14 @@ function EntryCard({ entry: e, onRemove }: { entry: Entry; onRemove: () => void 
           <ScorePlayer id={`composer:${e.key}`} bars={beats} bpm={bpm} onBpm={setBpm} />
         ) : e.kind === 'song' && e.ref ? (
           <Link className="btn small primary" to={songPath(e.ref)}>
-            Gyakorlás
+            {pick('Gyakorlás', 'Practice')}
           </Link>
         ) : e.kind === 'exercise' && e.ref ? (
           <Link className="btn small primary" to={`/lesson/${e.ref}`}>
-            Megnyitás
+            {pick('Megnyitás', 'Open')}
           </Link>
         ) : (
-          <p className="muted">{e.fileName || KIND_LABEL[e.kind]}</p>
+          <p className="muted">{e.fileName || text(KIND_LABEL[e.kind])}</p>
         )}
       </div>
     </article>
@@ -307,6 +310,7 @@ interface BrowserProps {
 
 /** A tananyag böngészése egy óra számára: előbb a kategóriák, aztán a tételek, kipipálva. */
 function Browser({ cat, name, heading, base, picked, onToggle, onOpen }: BrowserProps) {
+  const { t, pick, text } = useI18n();
   const { categories, items } = useLibrary();
   const [filter, setFilter] = useState<Subdivision | null>(null);
   const isPicked = (key: string) => picked.some((e) => e.key === key);
@@ -315,10 +319,10 @@ function Browser({ cat, name, heading, base, picked, onToggle, onOpen }: Browser
   const add = (
     <div className="composer-actions composer-sticky">
       <button className="btn" onClick={() => onOpen(cat === 'kategoriak' ? undefined : 'kategoriak')}>
-        Vissza
+        {t.back}
       </button>
       <button className="btn primary" onClick={() => onOpen()}>
-        Hozzáadás {name.split(/\s+/).pop()} órájához{count ? ` (${count})` : ''}
+        {pick(`Hozzáadás ${name.split(/\s+/).pop()} órájához`, `Add to ${name.split(/\s+/).pop()}'s lesson`)}{count ? ` (${count})` : ''}
       </button>
     </div>
   );
@@ -329,13 +333,13 @@ function Browser({ cat, name, heading, base, picked, onToggle, onOpen }: Browser
       id === 'dalok' ? SONGS.length : id === READY_LESSONS ? exerciseList.length : items.filter((i) => i.category === id).length;
     return (
       <>
-        <TopBar title="Tananyag" backTo={base} backLabel={heading} />
+        <TopBar title={pick('Tananyag', 'Library')} backTo={base} backLabel={heading} />
         <main className="page">
           <div className="tile-grid">
             {all.map((c, i) => (
               <button key={c.id} className={`cat-tile tone-${(i + (i >> 1)) % 2}`} onClick={() => onOpen(c.id)}>
-                <span className="cat-tile-name">{c.name}</span>
-                <span className="cat-tile-sub">{size(c.id) ? `${size(c.id)} tétel` : 'még üres'}</span>
+                <span className="cat-tile-name">{c.id === READY_LESSONS ? pick('Kész órák', 'Ready-made lessons') : text(c.name)}</span>
+                <span className="cat-tile-sub">{size(c.id) ? pick(`${size(c.id)} tétel`, `${size(c.id)} ${size(c.id) === 1 ? 'item' : 'items'}`) : pick('még üres', 'empty')}</span>
               </button>
             ))}
           </div>
@@ -364,23 +368,23 @@ function Browser({ cat, name, heading, base, picked, onToggle, onOpen }: Browser
             fileName: i.file_name,
             preview: i.bars[0],
           }));
-  const title = cat === READY_LESSONS ? 'Kész órák' : categories.find((c) => c.id === cat)?.name ?? 'Tananyag';
+  const title = cat === READY_LESSONS ? pick('Kész órák', 'Ready-made lessons') : text(categories.find((c) => c.id === cat)?.name ?? 'Tananyag');
   const kinds = new Set(library.map((i) => subdivisionOf(i.bars)));
   const offered = SUBDIVISIONS.filter(([s]) => s !== 'triolas' || kinds.has(s));
 
   return (
     <>
-      <TopBar title={title} backTo={`${base}?t=kategoriak`} backLabel="Tananyag" />
+      <TopBar title={title} backTo={`${base}?t=kategoriak`} backLabel={pick('Tananyag', 'Library')} />
       <main className="page">
         {library.length > 0 && (
-          <nav className="filters" aria-label="Szűrők">
-            <span>Szűrők:</span>
+          <nav className="filters" aria-label={pick('Szűrők', 'Filters')}>
+            <span>{pick('Szűrők:', 'Filters:')}</span>
             <button className={filter ? '' : 'on'} onClick={() => setFilter(null)}>
-              Mind
+              {pick('Mind', 'All')}
             </button>
             {offered.map(([s, label]) => (
               <button key={s} className={filter === s ? 'on' : ''} onClick={() => setFilter(s)}>
-                {label}
+                {text(label)}
               </button>
             ))}
           </nav>
@@ -393,15 +397,15 @@ function Browser({ cat, name, heading, base, picked, onToggle, onOpen }: Browser
                 <label key={e.key} className={`item-tile pick-tile tone-${i % 2}${on ? ' picked' : ''}`}>
                   <input type="checkbox" checked={on} onChange={() => onToggle(e)} />
                   <span className="pick-mark" aria-hidden="true" />
-                  <span className="item-tile-title">{e.title}</span>
-                  {e.sub && <span className="item-tile-sub">{e.sub}</span>}
+                  <span className="item-tile-title">{text(e.title)}</span>
+                  {e.sub && <span className="item-tile-sub">{text(e.sub)}</span>}
                   {e.preview && <Score bars={[toBeats(e.preview)]} />}
                 </label>
               );
             })}
           </div>
         ) : (
-          <p className="muted">{library.length ? 'Ehhez a szűrőhöz nincs tétel.' : 'Ez a kategória még üres.'}</p>
+          <p className="muted">{library.length ? pick('Ehhez a szűrőhöz nincs tétel.', 'Nothing matches this filter.') : pick('Ez a kategória még üres.', 'This category is still empty.')}</p>
         )}
         {add}
       </main>

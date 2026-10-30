@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { TopBar } from '../components/TopBar';
+import { useI18n } from '../i18n';
 import { supabase, type Profile } from '../lib/supabase';
 
 interface Row extends Profile {
@@ -10,6 +11,7 @@ interface Row extends Profile {
 
 /** Az összes regisztrált diák, kereshetően, az órák számával és az utolsó óra dátumával. */
 export function Students() {
+  const { pick, locale } = useI18n();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
@@ -40,12 +42,12 @@ export function Students() {
 
   return (
     <>
-      <TopBar title="Diákjaim" backTo="/" backLabel="BEATHUB">
-        <input className="search" placeholder="Keresés név szerint…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <TopBar title={pick('Diákjaim', 'My students')} backTo="/" backLabel="BEATHUB">
+        <input className="search" placeholder={pick('Keresés név szerint…', 'Search by name…')} value={q} onChange={(e) => setQ(e.target.value)} />
       </TopBar>
       <main className="page">
         <button className="btn primary big" onClick={() => setAdding(!adding)}>
-          + Diák felvétele
+          {pick('+ Diák felvétele', '+ Add student')}
         </button>
         {adding && (
           <AddStudent
@@ -56,12 +58,12 @@ export function Students() {
           />
         )}
         {rows === null ? (
-          <p className="muted">Betöltés…</p>
+          <p className="muted">{pick('Betöltés…', 'Loading…')}</p>
         ) : !shown.length ? (
           <p className="muted">
             {rows.length
-              ? 'Nincs ilyen nevű diák.'
-              : 'Még nincs regisztrált diák. Küldd el nekik az app linkjét: regisztráció után itt jelennek meg.'}
+              ? pick('Nincs ilyen nevű diák.', 'No student with this name.')
+              : pick('Még nincs regisztrált diák. Küldd el nekik az app linkjét: regisztráció után itt jelennek meg.', 'No registered students yet. Send them the app link: they appear here after signing up.')}
           </p>
         ) : (
           <div className="grid">
@@ -69,12 +71,12 @@ export function Students() {
               <Link key={s.id} to={`/diak/${s.id}`} className={`lesson-card tone-${i % 2}`}>
                 <div className="lesson-card-num">{initials(s.full_name)}</div>
                 <div className="lesson-card-text">
-                  <div className="lesson-card-title">{s.full_name || 'Névtelen diák'}</div>
+                  <div className="lesson-card-title">{s.full_name || pick('Névtelen diák', 'Unnamed student')}</div>
                   <div className="lesson-card-sub">
                     {s.lessons && s.last
-                      ? `${s.lessons} óra · utoljára ${new Date(s.last).toLocaleDateString('hu-HU')}`
-                      : 'még nincs óra'}
-                    {!s.user_id && (s.email ? ' · még nem regisztrált' : ' · nincs email')}
+                      ? pick(`${s.lessons} óra · utoljára ${new Date(s.last).toLocaleDateString(locale)}`, `${s.lessons} ${s.lessons === 1 ? 'lesson' : 'lessons'} · last ${new Date(s.last).toLocaleDateString(locale)}`)
+                      : pick('még nincs óra', 'no lessons yet')}
+                    {!s.user_id && (s.email ? pick(' · még nem regisztrált', ' · not signed up yet') : pick(' · nincs email', ' · no email'))}
                   </div>
                 </div>
               </Link>
@@ -89,6 +91,7 @@ export function Students() {
 /** Diák felvétele név + email alapján, még a regisztrációja előtt: amikor ezzel az email címmel regisztrál,
  *  a fiókja ehhez a profilhoz kapcsolódik, és mindent ott talál, amit addig kiadtál neki. */
 function AddStudent({ onDone }: { onDone: () => void }) {
+  const { pick } = useI18n();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
@@ -101,22 +104,22 @@ function AddStudent({ onDone }: { onDone: () => void }) {
       .from('profiles')
       .insert({ full_name: name.trim(), email: email.trim().toLowerCase(), role: 'student' });
     setBusy(false);
-    if (error) return alert(/duplicate|unique/i.test(error.message) ? 'Ezzel az email címmel már van diák.' : error.message);
+    if (error) return alert(/duplicate|unique/i.test(error.message) ? pick('Ezzel az email címmel már van diák.', 'There is already a student with this email.') : error.message);
     onDone();
   };
 
   return (
     <form className="form card" onSubmit={submit}>
       <label>
-        Név
+        {pick('Név', 'Name')}
         <input required value={name} onChange={(e) => setName(e.target.value)} />
       </label>
       <label>
-        Email (ezzel fog regisztrálni)
+        {pick('Email (ezzel fog regisztrálni)', 'Email (they will sign up with this)')}
         <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
       </label>
       <button className="btn primary" disabled={busy}>
-        {busy ? 'Mentés…' : 'Felvétel'}
+        {busy ? pick('Mentés…', 'Saving…') : pick('Felvétel', 'Add')}
       </button>
     </form>
   );

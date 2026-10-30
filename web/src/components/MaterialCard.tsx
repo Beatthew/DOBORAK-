@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { findExercise, findSong, songPath } from '../data/catalog';
 import { toBeats } from '../data/library';
+import { useI18n } from '../i18n';
 import { KIND_LABEL, openFile, type Material } from '../lib/supabase';
 import { ScorePlayer } from './Score';
 
@@ -15,31 +16,32 @@ interface Props {
 
 /** Egy kiadott anyag: dal → a dal gyakorló oldala, gyakorlat → kész óra, fájl → letöltés, link → megnyitás. */
 export function MaterialCard({ m, onDelete }: Props) {
+  const { pick, text, locale } = useI18n();
   const song = m.kind === 'song' ? findSong(m.ref) : undefined;
   const ex = m.kind === 'exercise' ? findExercise(m.ref) : undefined;
-  const title = m.title || song?.title || ex?.title || KIND_LABEL[m.kind];
+  const title = text(m.title || song?.title || ex?.title || KIND_LABEL[m.kind]);
   const beats = useMemo(() => (m.bars ?? []).map(toBeats), [m.bars]);
   const [bpm, setBpm] = useState(m.bpm ?? 90);
   return (
     <article className={`mat tone-${KIND_TONE[m.kind]}`}>
       <div className="mat-head">
-        <span className="mat-kind">{KIND_LABEL[m.kind]}</span>
-        <span className="mat-date">{new Date(m.created_at).toLocaleDateString('hu-HU')}</span>
+        <span className="mat-kind">{text(KIND_LABEL[m.kind])}</span>
+        <span className="mat-date">{new Date(m.created_at).toLocaleDateString(locale)}</span>
       </div>
       <h3>{title}</h3>
       {song && song.artist && <p className="mat-sub">{song.artist}</p>}
-      {m.note && <p className="mat-note">{m.note}</p>}
+      {m.note && <p className="mat-note">{text(m.note)}</p>}
       {beats.length > 0 && (
         <div className="mat-score">
           <ScorePlayer id={m.id} bars={beats} bpm={bpm} onBpm={setBpm} />
         </div>
       )}
       <div className="mat-actions">
-        {song && <Link className="btn primary" to={songPath(song.id)}>Gyakorlás</Link>}
-        {ex && <Link className="btn primary" to={`/lesson/${ex.ref}`}>Megnyitás</Link>}
+        {song && <Link className="btn primary" to={songPath(song.id)}>{pick('Gyakorlás', 'Practice')}</Link>}
+        {ex && <Link className="btn primary" to={`/lesson/${ex.ref}`}>{pick('Megnyitás', 'Open')}</Link>}
         {m.file_path && (
           <button className="btn" onClick={() => openFile(m.file_path!)}>
-            {m.file_name || 'Fájl'}
+            {m.file_name || pick('Fájl', 'File')}
           </button>
         )}
         {m.link_url && (
@@ -49,7 +51,7 @@ export function MaterialCard({ m, onDelete }: Props) {
         )}
         {onDelete && (
           <button className="btn" onClick={onDelete}>
-            Törlés
+            {pick('Törlés', 'Delete')}
           </button>
         )}
       </div>

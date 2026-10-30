@@ -160,16 +160,16 @@ const TOKEN = /^(\([crhotusfk]\)|[crhotusfk]>?)$/;
 
 /** Kottakód → ütemek. Soronként egy ütem, a negyedek | jellel elválasztva: h+k h | h+s h | h+k h | h+s h
  *  A @-cal kezdődő sor az előtte lévő ütem kézrendje: @ R L | R L | R L | R L */
-export function parseScoreCode(code: string): { bars: ScoreBar[]; error: string } {
+export function parseScoreCode(code: string, pick: (hu: string, en: string) => string): { bars: ScoreBar[]; error: string } {
   const bars: ScoreBar[] = [];
   for (const [n, raw] of code.split('\n').entries()) {
     const line = raw.trim();
     if (!line) continue;
     const isHands = line.startsWith('@');
     const beats = line.replace(/^@/, '').split('|').map((b) => b.trim().replace(/\s+/g, ' '));
-    if (beats.length !== 4) return { bars, error: `${n + 1}. sor: négy negyed kell, | jellel elválasztva.` };
+    if (beats.length !== 4) return { bars, error: pick(`${n + 1}. sor: négy negyed kell, | jellel elválasztva.`, `Line ${n + 1}: needs four beats, separated by |.`) };
     if (isHands) {
-      if (!bars.length) return { bars, error: `${n + 1}. sor: a kézrend egy ütem után jöhet.` };
+      if (!bars.length) return { bars, error: pick(`${n + 1}. sor: a kézrend egy ütem után jöhet.`, `Line ${n + 1}: sticking must follow a bar.`) };
       bars[bars.length - 1].hands = beats;
       continue;
     }
@@ -177,9 +177,9 @@ export function parseScoreCode(code: string): { bars: ScoreBar[]; error: string 
       .flatMap((b) => b.split(' '))
       .flatMap((s) => (s === '-' ? [] : s.split('+')))
       .find((t) => !TOKEN.test(t));
-    if (wrong) return { bars, error: `${n + 1}. sor: ismeretlen jel: ${wrong}` };
+    if (wrong) return { bars, error: pick(`${n + 1}. sor: ismeretlen jel: ${wrong}`, `Line ${n + 1}: unknown symbol: ${wrong}`) };
     const size = beats.find((b) => ![1, 2, 3, 4, 6].includes(b.split(' ').length));
-    if (size) return { bars, error: `${n + 1}. sor: egy negyed 1, 2, 3, 4 vagy 6 tagú lehet: ${size}` };
+    if (size) return { bars, error: pick(`${n + 1}. sor: egy negyed 1, 2, 3, 4 vagy 6 tagú lehet: ${size}`, `Line ${n + 1}: a beat can have 1, 2, 3, 4 or 6 notes: ${size}`) };
     bars.push({ beats });
   }
   return { bars, error: '' };

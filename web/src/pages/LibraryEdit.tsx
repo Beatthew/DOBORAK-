@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ScorePlayer } from '../components/Score';
 import { TopBar } from '../components/TopBar';
 import { formatScoreCode, MISSING_TABLES, parseScoreCode, toBeats, useLibrary, type LibraryItem, type ScoreBar } from '../data/library';
+import { useI18n } from '../i18n';
 import { supabase } from '../lib/supabase';
 
 /* Új tétel két úton: kézzel építve (a Song Practice szerkesztője szerint), vagy képről / kottáról átírva. */
@@ -55,12 +56,13 @@ function redivide(beat: string, n: number) {
 }
 
 export function LibraryEdit() {
+  const { pick, text } = useI18n();
   const { cat = '', item: itemId } = useParams();
   const { categories, items, ready } = useLibrary();
   const { state } = useLocation() as { state: { copyOf?: LibraryItem } | null };
   const existing = items.find((i) => i.id === itemId);
   const seed = existing ?? state?.copyOf;
-  const backLabel = categories.find((c) => c.id === cat)?.name ?? 'Tananyag';
+  const backLabel = text(categories.find((c) => c.id === cat)?.name ?? 'Tananyag');
   const [mode, setMode] = useState<Mode | null>(seed ? 'hand' : null);
 
   if (itemId && !existing) {
@@ -68,7 +70,7 @@ export function LibraryEdit() {
       <>
         <TopBar title={backLabel} backTo={`/tananyag/${cat}`} backLabel={backLabel} />
         <main className="page">
-          <p className="muted">{ready ? 'Ez a tétel nem található.' : 'Betöltés…'}</p>
+          <p className="muted">{ready ? pick('Ez a tétel nem található.', 'This item does not exist.') : pick('Betöltés…', 'Loading…')}</p>
         </main>
       </>
     );
@@ -76,15 +78,15 @@ export function LibraryEdit() {
 
   return (
     <>
-      <TopBar title={existing ? existing.title : 'Új tétel'} backTo={`/tananyag/${cat}`} backLabel={backLabel} />
+      <TopBar title={existing ? text(existing.title) : pick('Új tétel', 'New item')} backTo={`/tananyag/${cat}`} backLabel={backLabel} />
       <main className="page">
         {mode === null ? (
           <nav className="home-tiles">
             <button className="home-tile tone-0" onClick={() => setMode('hand')}>
-              Kézzel építem
+              {pick('Kézzel építem', 'Build by hand')}
             </button>
             <button className="home-tile tone-1" onClick={() => setMode('image')}>
-              Képről írom át
+              {pick('Képről írom át', 'Transcribe from image')}
             </button>
           </nav>
         ) : (
@@ -103,8 +105,9 @@ interface EditorProps {
 }
 
 function Editor({ mode, category, existing, seed }: EditorProps) {
+  const { pick, text } = useI18n();
   const nav = useNavigate();
-  const [title, setTitle] = useState(existing?.title ?? (seed ? `${seed.title} másolat` : ''));
+  const [title, setTitle] = useState(existing?.title ?? (seed ? pick(`${seed.title} másolat`, `${seed.title} copy`) : ''));
   const [subtitle, setSubtitle] = useState(seed?.subtitle ?? '');
   const [note, setNote] = useState(seed?.note ?? '');
   const [bpm, setBpm] = useState(seed?.bpm ?? 90);
@@ -113,15 +116,15 @@ function Editor({ mode, category, existing, seed }: EditorProps) {
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const parsed = useMemo(() => parseScoreCode(code), [code]);
+  const parsed = useMemo(() => parseScoreCode(code, pick), [code, pick]);
   const bars = mode === 'hand' ? handBars : parsed.bars;
   const beats = useMemo(() => bars.map(toBeats), [bars]);
 
   const save = async () => {
     if (!supabase) return;
-    if (!title.trim()) return alert('Adj nevet a tételnek.');
+    if (!title.trim()) return alert(pick('Adj nevet a tételnek.', 'Give the item a name.'));
     if (mode === 'image' && parsed.error) return alert(parsed.error);
-    if (mode === 'image' && !bars.length && !file) return alert('Tölts fel egy képet, vagy írd be a kottakódot.');
+    if (mode === 'image' && !bars.length && !file) return alert(pick('Tölts fel egy képet, vagy írd be a kottakódot.', 'Upload an image or enter the score code.'));
     setBusy(true);
     let image_path = existing?.image_path ?? null;
     let file_name = existing?.file_name ?? null;
@@ -132,7 +135,7 @@ function Editor({ mode, category, existing, seed }: EditorProps) {
       const up = await supabase.storage.from('materials').upload(image_path, file, { contentType: file.type || undefined });
       if (up.error) {
         setBusy(false);
-        return alert(`A feltöltés nem sikerült: ${up.error.message}`);
+        return alert(`${pick('A feltöltés nem sikerült', 'Upload failed')}: ${up.error.message}`);
       }
     }
     const row = { category, title: title.trim(), subtitle: subtitle.trim(), note: note.trim(), bpm, bars, image_path, file_name };
@@ -140,7 +143,7 @@ function Editor({ mode, category, existing, seed }: EditorProps) {
       ? await supabase.from('library_items').update(row).eq('id', existing.id)
       : await supabase.from('library_items').insert(row);
     setBusy(false);
-    if (error) return alert(/library_items/.test(error.message) ? MISSING_TABLES : error.message);
+    if (error) return alert(/library_items/.test(error.message) ? text(MISSING_TABLES) : error.message);
     nav(`/tananyag/${category}`, { replace: true });
   };
 
@@ -148,22 +151,22 @@ function Editor({ mode, category, existing, seed }: EditorProps) {
     <>
       <div className="form">
         <label>
-          Név
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="pl. Money Beat" />
+          {pick('Név', 'Name')}
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={pick('pl. Money Beat', 'e.g. Money Beat')} />
         </label>
         <label>
-          Alcím
-          <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="pl. Groove 1" />
+          {pick('Alcím', 'Subtitle')}
+          <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder={pick('pl. Groove 1', 'e.g. Groove 1')} />
         </label>
       </div>
       {mode === 'hand' ? <Builder bars={handBars} onChange={setHandBars} /> : <ImageCode code={code} onCode={setCode} error={parsed.error} file={file} onFile={setFile} />}
       {beats.length > 0 && <ScorePlayer id="edit" bars={beats} bpm={bpm} onBpm={setBpm} />}
       <label className="form">
-        Megjegyzés
+        {pick('Megjegyzés', 'Note')}
         <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
       </label>
       <button className="btn primary big" disabled={busy} onClick={() => void save()}>
-        {busy ? 'Mentés…' : 'Mentés a tananyagba'}
+        {busy ? pick('Mentés…', 'Saving…') : pick('Mentés a tananyagba', 'Save to library')}
       </button>
     </>
   );
@@ -171,10 +174,11 @@ function Editor({ mode, category, existing, seed }: EditorProps) {
 
 /** Kézi bevitel: hangszerenként egy sor, negyedenként választható felosztás; kattintás: hang → hangsúly → ghost → töröl. */
 function Builder({ bars, onChange }: { bars: ScoreBar[]; onChange: (bars: ScoreBar[]) => void }) {
+  const { t, pick, text } = useI18n();
   const setBar = (b: number, bar: ScoreBar) => onChange(bars.map((x, i) => (i === b ? bar : x)));
 
   const setLength = (n: number) => {
-    if (n < bars.length && !confirm(`${bars.length} ütemből ${n} lesz: a többi ütem kottája törlődik. Mehet?`)) return;
+    if (n < bars.length && !confirm(pick(`${bars.length} ütemből ${n} lesz: a többi ütem kottája törlődik. Mehet?`, `${bars.length} bars become ${n}: the score of the other bars is deleted. Continue?`))) return;
     const last = bars[bars.length - 1];
     onChange(Array.from({ length: n }, (_, i) => bars[i] ?? { ...last }));
   };
@@ -209,30 +213,30 @@ function Builder({ bars, onChange }: { bars: ScoreBar[]; onChange: (bars: ScoreB
 
   return (
     <section className="builder">
-      <div className="seg" role="group" aria-label="Hossz">
+      <div className="seg" role="group" aria-label={pick('Hossz', 'Length')}>
         {LENGTHS.map((n) => (
           <button type="button" key={n} className={n === bars.length ? 'on' : ''} onClick={() => setLength(n)}>
-            {n} ütem
+            {t.bars(n)}
           </button>
         ))}
       </div>
       <div className="builder-scroll">
         {bars.map((bar, b) => (
           <div className="builder-grid" key={b}>
-            {bars.length > 1 && <div className="builder-bar">{b + 1}. ütem</div>}
+            {bars.length > 1 && <div className="builder-bar">{pick(`${b + 1}. ütem`, `Bar ${b + 1}`)}</div>}
             <span />
             {bar.beats.map((beat, q) => (
-              <select key={q} aria-label={`${q + 1}. negyed felosztása`} value={beat.trim().split(/\s+/).length} onChange={(e) => setDivision(b, q, +e.target.value)}>
+              <select key={q} aria-label={pick(`${q + 1}. negyed felosztása`, `Division of beat ${q + 1}`)} value={beat.trim().split(/\s+/).length} onChange={(e) => setDivision(b, q, +e.target.value)}>
                 {DIVISIONS.map(([n, label]) => (
                   <option key={n} value={n}>
-                    {q + 1}. negyed · {label}
+                    {pick(`${q + 1}. negyed`, `Beat ${q + 1}`)} · {text(label)}
                   </option>
                 ))}
               </select>
             ))}
             {INST.map(([ins, name]) => (
               <Fragment key={ins}>
-                <span className="builder-label">{name}</span>
+                <span className="builder-label">{text(name)}</span>
                 {bar.beats.map((beat, q) => (
                   <div className="cells" key={q}>
                     {parseBeat(beat).map((slot, s) => {
@@ -241,7 +245,7 @@ function Builder({ bars, onChange }: { bars: ScoreBar[]; onChange: (bars: ScoreB
                         <button
                           type="button"
                           key={s}
-                          aria-label={`${name}, ${q + 1}. negyed, ${s + 1}. tag`}
+                          aria-label={pick(`${name}, ${q + 1}. negyed, ${s + 1}. tag`, `${text(name)}, beat ${q + 1}, note ${s + 1}`)}
                           aria-pressed={mod !== undefined}
                           className={`cell${mod === undefined ? '' : ' on'}${mod === 'g' ? ' ghost' : ''}`}
                           onClick={() => cycle(b, q, s, ins)}
@@ -254,7 +258,7 @@ function Builder({ bars, onChange }: { bars: ScoreBar[]; onChange: (bars: ScoreB
                 ))}
               </Fragment>
             ))}
-            <span className="builder-label">Kézrend</span>
+            <span className="builder-label">{pick('Kézrend', 'Sticking')}</span>
             {bar.beats.map((beat, q) => {
               const hands = (bar.hands?.[q] ?? '').trim().split(/\s+/);
               return (
@@ -288,6 +292,7 @@ interface ImageCodeProps {
 
 /** Képről átírás: a kép az eredeti forrásként a tételhez kerül, mellette a kottakód adja a visszahallgatható kottát. */
 function ImageCode({ code, onCode, error, file, onFile }: ImageCodeProps) {
+  const { pick } = useI18n();
   const [preview, setPreview] = useState('');
   const input = useRef<HTMLInputElement>(null);
 
@@ -301,17 +306,16 @@ function ImageCode({ code, onCode, error, file, onFile }: ImageCodeProps) {
   return (
     <section className="image-code">
       <button type="button" className="drop" onClick={() => input.current?.click()}>
-        {preview ? <img src={preview} alt="A feltöltött kotta" /> : file ? file.name : '+ Kép vagy PDF feltöltése'}
+        {preview ? <img src={preview} alt={pick('A feltöltött kotta', 'The uploaded score')} /> : file ? file.name : pick('+ Kép vagy PDF feltöltése', '+ Upload image or PDF')}
       </button>
       <input ref={input} hidden type="file" accept="image/*,application/pdf" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
       <label className="form">
-        Kottakód (soronként egy ütem)
+        {pick('Kottakód (soronként egy ütem)', 'Score code (one bar per line)')}
         <textarea rows={5} spellCheck={false} className="code" value={code} onChange={(e) => onCode(e.target.value)} placeholder={'h+k h | h+s h | h+k h | h+s h\n@ R L | R L | R L | R L'} />
       </label>
       {error && <p className="error-box">{error}</p>}
       <p className="note-box">
-        h hihat · o nyitott hihat · r ride · c crash · t kistam · u középtam · s pergő · f álló tam · k lábdob ·
-        - szünet · + egyszerre · (s) ghost · s&gt; hangsúly. A kód nélkül mentett kép „átírásra vár” jelzést kap.
+        {pick('h hihat · o nyitott hihat · r ride · c crash · t kistam · u középtam · s pergő · f álló tam · k lábdob · - szünet · + egyszerre · (s) ghost · s> hangsúly. A kód nélkül mentett kép „átírásra vár” jelzést kap.', 'h hi-hat · o open hi-hat · r ride · c crash · t high tom · u mid tom · s snare · f floor tom · k kick · - rest · + together · (s) ghost · s> accent. An image saved without code is marked “awaiting transcription”.')}
       </p>
     </section>
   );

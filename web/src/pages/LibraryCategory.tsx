@@ -4,10 +4,13 @@ import { Score } from '../components/Score';
 import { TopBar } from '../components/TopBar';
 import { songPath } from '../data/catalog';
 import { subdivisionOf, SUBDIVISIONS, toBeats, useLibrary, type Subdivision } from '../data/library';
+import { useI18n } from '../i18n';
 import { SONGS } from '../songs';
 
 /** Egy kategória tételei, kottával, a legkisebb érték szerinti szűrővel. */
 export function LibraryCategory() {
+  const { pick, text } = useI18n();
+  const library = pick('Tananyag', 'Library');
   const { cat = '' } = useParams();
   const { categories, items, ready } = useLibrary();
   const [filter, setFilter] = useState<Subdivision | null>(null);
@@ -20,9 +23,9 @@ export function LibraryCategory() {
   if (!category) {
     return (
       <>
-        <TopBar title="Tananyag" backTo="/tananyag" backLabel="Tananyag" />
+        <TopBar title={library} backTo="/tananyag" backLabel={library} />
         <main className="page">
-          <p className="muted">{ready ? 'Ez a kategória nem található.' : 'Betöltés…'}</p>
+          <p className="muted">{ready ? pick('Ez a kategória nem található.', 'This category does not exist.') : pick('Betöltés…', 'Loading…')}</p>
         </main>
       </>
     );
@@ -31,7 +34,7 @@ export function LibraryCategory() {
   if (cat === 'dalok') {
     return (
       <>
-        <TopBar title={category.name} backTo="/tananyag" backLabel="Tananyag" />
+        <TopBar title={text(category.name)} backTo="/tananyag" backLabel={library} />
         <main className="page">
           <div className="grid">
             {SONGS.map((s, i) => (
@@ -48,8 +51,8 @@ export function LibraryCategory() {
             ))}
           </div>
           <p className="note-box">
-            A dalok forrása a Songpractice: ott készül el a kotta, a <b>Küldés a BEATHUBba</b> gomb után pedig
-            a <b>web</b> mappában: <b>npm run import-song -- &lt;dal id&gt;</b>
+            {pick('A dalok forrása a Songpractice: ott készül el a kotta, a', 'Songs come from Songpractice: the score is made there; after the')} <b>Küldés a BEATHUBba</b>{' '}
+            {pick('gomb után pedig a', 'button, in the')} <b>web</b> {pick('mappában:', 'folder run:')} <b>npm run import-song -- &lt;dal id&gt;</b>
           </p>
         </main>
       </>
@@ -58,17 +61,17 @@ export function LibraryCategory() {
 
   return (
     <>
-      <TopBar title={category.name} backTo="/tananyag" backLabel="Tananyag" />
+      <TopBar title={text(category.name)} backTo="/tananyag" backLabel={library} />
       <main className="page">
         {mine.length > 0 && (
-          <nav className="filters" aria-label="Szűrők">
-            <span>Szűrők:</span>
+          <nav className="filters" aria-label={pick('Szűrők', 'Filters')}>
+            <span>{pick('Szűrők:', 'Filters:')}</span>
             <button className={filter ? '' : 'on'} onClick={() => setFilter(null)}>
-              Mind
+              {pick('Mind', 'All')}
             </button>
             {offered.map(([s, label]) => (
               <button key={s} className={filter === s ? 'on' : ''} onClick={() => setFilter(s)}>
-                {label}
+                {text(label)}
               </button>
             ))}
           </nav>
@@ -76,18 +79,18 @@ export function LibraryCategory() {
         <div className="item-grid">
           {shown.map((item, i) => (
             <Link key={item.id} className={`item-tile tone-${i % 2}`} to={`/tananyag/${cat}/${item.id}`}>
-              <span className="item-tile-title">{item.title}</span>
-              {item.subtitle && <span className="item-tile-sub">{item.subtitle}</span>}
+              <span className="item-tile-title">{text(item.title)}</span>
+              {item.subtitle && <span className="item-tile-sub">{text(item.subtitle)}</span>}
               {item.bars.length ? (
                 <Score bars={[toBeats(item.bars[0])]} />
               ) : (
-                <span className="item-tile-sub">{item.image_path ? 'Átírásra vár' : 'Nincs kotta'}</span>
+                <span className="item-tile-sub">{item.image_path ? pick('Átírásra vár', 'Awaiting transcription') : pick('Nincs kotta', 'No score')}</span>
               )}
             </Link>
           ))}
           <Link className="item-tile add-tile" to={`/tananyag/${cat}/uj`}>
             <span className="add-plus">+</span>
-            <span className="item-tile-title">Új hozzáadása</span>
+            <span className="item-tile-title">{pick('Új hozzáadása', 'Add new')}</span>
           </Link>
         </div>
       </main>

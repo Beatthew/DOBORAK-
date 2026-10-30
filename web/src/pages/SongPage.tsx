@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { TopBar } from '../components/TopBar';
+import { useI18n } from '../i18n';
 import { SongEngine } from '../songs/engine';
 import { findSongData } from '../songs';
 import { fitWidth, marksOf, rowSVG, setPlayhead } from '../songs/notation';
@@ -16,8 +17,8 @@ type Tab = 'groove' | 'fill' | 'song';
 const TABS: [Tab, string][] = [
   ['groove', 'Groove-ok'],
   ['fill', 'Fillek'],
-  ['song', 'Teljes szám'],
 ];
+type I18nFns = Pick<ReturnType<typeof useI18n>, 'pick' | 'text'>;
 
 interface Mix {
   band: number;
@@ -46,35 +47,40 @@ interface Sel {
   loop: [number, number] | null;
 }
 
-function select(song: SongData, key: string): Sel {
+function select(song: SongData, key: string, i18n: I18nFns): Sel {
+  const { pick, text } = i18n;
   const els = song.elements;
   const m = /^e(\d+)(?:v(\d+))?$/.exec(key), s = /^s(\d+)$/.exec(key);
   if (m && els[+m[1]] && (!m[2] || els[+m[1]].variants[+m[2] - 1])) {
     const e = els[+m[1]], part = m[2] ? e.variants[+m[2] - 1] : e;
     const big = part.bars || [part.beats];
     return {
-      key, tab: e.type, name: e.name + (m[2] ? ` · ${part.name}` : ''), isFill: e.type === 'fill', big, loop: part.loop,
-      sub: `${big.length} ütemes ${e.type === 'fill' ? 'fill' : 'groove'} · a dalban: ${part.loop[0]}–${part.loop[1]}. ütem`,
+      key, tab: e.type, name: text(e.name) + (m[2] ? ` · ${text(part.name)}` : ''), isFill: e.type === 'fill', big, loop: part.loop,
+      sub: pick(
+        `${big.length} ütemes ${e.type === 'fill' ? 'fill' : 'groove'} · a dalban: ${part.loop[0]}–${part.loop[1]}. ütem`,
+        `${big.length}-bar ${e.type === 'fill' ? 'fill' : 'groove'} · in the song: bars ${part.loop[0]}–${part.loop[1]}`,
+      ),
     };
   }
   if (s && song.sections[+s[1]]) {
     const sec = song.sections[+s[1]];
-    return { key, tab: 'song', name: sec.name, sub: `${sec.from}–${sec.to}. ütem · ismétlődik`, big: null, isFill: false, loop: [sec.from, sec.to] };
+    return { key, tab: 'song', name: text(sec.name), sub: pick(`${sec.from}–${sec.to}. ütem · ismétlődik`, `Bars ${sec.from}–${sec.to} · looping`), big: null, isFill: false, loop: [sec.from, sec.to] };
   }
-  if (key === 'all') return { key, tab: 'song', name: 'Teljes szám', sub: `${song.score.length - 1} ütem`, big: null, isFill: false, loop: null };
+  if (key === 'all') return { key, tab: 'song', name: pick('Teljes szám', 'Full song'), sub: pick(`${song.score.length - 1} ütem`, `${song.score.length - 1} bars`), big: null, isFill: false, loop: null };
   const first = els.findIndex((e) => e.type === 'groove');
-  return select(song, first >= 0 ? `e${first}` : 'all');
+  return select(song, first >= 0 ? `e${first}` : 'all', i18n);
 }
 
 export function SongPage() {
+  const { pick } = useI18n();
   const { id, sel: selKey = '' } = useParams();
   const song = findSongData(id);
   if (!song) {
     return (
       <>
-        <TopBar title="Dal" backTo="/" />
+        <TopBar title={pick('Dal', 'Song')} backTo="/" />
         <main className="page">
-          <p className="muted">Ez a dal nincs a BEATHUBban.</p>
+          <p className="muted">{pick('Ez a dal nincs a BEATHUBban.', 'This song is not in BEATHUB.')}</p>
         </main>
       </>
     );
@@ -83,11 +89,12 @@ export function SongPage() {
 }
 
 function SongPlayer({ song, selKey }: { song: SongData; selKey: string }) {
+  const { t, pick, text } = useI18n();
   const nav = useNavigate();
   const { pathname, state } = useLocation() as { pathname: string; state: { back?: string } | null };
   const { profile } = useAuth();
   const back = state?.back ?? (profile?.role === 'teacher' ? '/tananyag/dalok' : '/');
-  const sel = useMemo(() => select(song, selKey), [song, selKey]);
+  const sel = useMemo(() => select(song, selKey, { pick, text }), [song, selKey, pick, text]);
   const marks = useMemo(() => marksOf(song), [song]);
   const [engine, setEngine] = useState<SongEngine | null>(null);
   const [err, setErr] = useState('');
@@ -236,11 +243,11 @@ function SongPlayer({ song, selKey }: { song: SongData; selKey: string }) {
   const go = (key: string) => nav(`${base}/${song.id}/${key}`, { replace: true, state });
   const setM = (k: keyof Mix, v: number) => setMix((m) => ({ ...m, [k]: v }));
   const list = tab === 'song'
-    ? [{ key: 'all', label: 'Teljes szám', sub: `1–${lastBar}`, cls: '' }, ...song.sections.flatMap((s, i) => (s.tacet ? [] : [{ key: `s${i}`, label: s.name, sub: `${s.from}–${s.to}`, cls: '' }]))]
+    ? [{ key: 'all', label: pick('Teljes szám', 'Full song'), sub: `1–${lastBar}`, cls: '' }, ...song.sections.flatMap((s, i) => (s.tacet ? [] : [{ key: `s${i}`, label: text(s.name), sub: `${s.from}–${s.to}`, cls: '' }]))]
     : song.elements.flatMap((e, i) =>
         e.type !== tab ? [] : [
-          { key: `e${i}`, label: e.name, sub: `${e.loop[0]}–${e.loop[1]}`, cls: '' },
-          ...e.variants.map((v, j) => ({ key: `e${i}v${j + 1}`, label: `↳ ${v.name}`, sub: `${v.loop[0]}–${v.loop[1]}`, cls: 'var' })),
+          { key: `e${i}`, label: text(e.name), sub: `${e.loop[0]}–${e.loop[1]}`, cls: '' },
+          ...e.variants.map((v, j) => ({ key: `e${i}v${j + 1}`, label: `↳ ${text(v.name)}`, sub: `${v.loop[0]}–${v.loop[1]}`, cls: 'var' })),
         ]);
 
   const seekTo = (ev: React.PointerEvent<HTMLDivElement>) => {
@@ -251,12 +258,12 @@ function SongPlayer({ song, selKey }: { song: SongData; selKey: string }) {
 
   return (
     <>
-      <TopBar title={song.title} backTo={back} backLabel="Vissza">
+      <TopBar title={song.title} backTo={back} backLabel={t.back}>
         {song.artist && <p className="top-sub">{song.artist}</p>}
         <nav className="tabs">
-          {TABS.map(([t, label]) => (
-            <button key={t} className={t === tab ? 'on' : ''} onClick={() => setTab(t)}>
-              {label}
+          {[...TABS, ['song', pick('Teljes szám', 'Full song')] as [Tab, string]].map(([id, label]) => (
+            <button key={id} className={id === tab ? 'on' : ''} onClick={() => setTab(id)}>
+              {text(label)}
             </button>
           ))}
         </nav>
@@ -271,7 +278,7 @@ function SongPlayer({ song, selKey }: { song: SongData; selKey: string }) {
               </button>
             ))
           ) : (
-            <p className="muted">Ebben a dalban nincs ilyen elem.</p>
+            <p className="muted">{pick('Ebben a dalban nincs ilyen elem.', 'This song has no such part.')}</p>
           )}
         </nav>
 
@@ -282,7 +289,7 @@ function SongPlayer({ song, selKey }: { song: SongData; selKey: string }) {
               <p>{sel.sub}</p>
             </div>
             <div className="barnum">
-              <small>ütem</small>
+              <small>{pick('ütem', 'bar')}</small>
               <b>{bar}</b>
               <span>/ {lastBar}</span>
             </div>
@@ -306,7 +313,7 @@ function SongPlayer({ song, selKey }: { song: SongData; selKey: string }) {
         </section>
 
         <section className="transport">
-          <button className="play-btn" onClick={toggle} disabled={!engine} aria-label={playing ? 'Megállítás' : 'Lejátszás'}>
+          <button className="play-btn" onClick={toggle} disabled={!engine} aria-label={playing ? t.stop : t.play}>
             {playing ? (
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z" /></svg>
             ) : (
@@ -314,12 +321,12 @@ function SongPlayer({ song, selKey }: { song: SongData; selKey: string }) {
             )}
           </button>
           <div className="transport-info">
-            {err ? <span className="error-text">A hangsávok nem töltődtek be: {err}</span> : !engine ? <span>Hangsávok betöltése…</span> : <span>{sel.loop ? 'Loop: ' + sel.loop[0] + '–' + sel.loop[1] + '. ütem' : 'Az egész dal, elejétől végéig'}</span>}
+            {err ? <span className="error-text">{pick('A hangsávok nem töltődtek be', 'The audio tracks did not load')}: {err}</span> : !engine ? <span>{pick('Hangsávok betöltése…', 'Loading audio tracks…')}</span> : <span>{sel.loop ? pick(`Loop: ${sel.loop[0]}–${sel.loop[1]}. ütem`, `Loop: bars ${sel.loop[0]}–${sel.loop[1]}`) : pick('Az egész dal, elejétől végéig', 'The whole song, start to finish')}</span>}
           </div>
         </section>
 
         <section className="mixer-card">
-          <Slider label="Tempó" value={mix.tempo} min={50} max={100} unit="%" onChange={(v) => setM('tempo', v)}>
+          <Slider label={pick('Tempó', 'Tempo')} value={mix.tempo} min={50} max={100} unit="%" onChange={(v) => setM('tempo', v)}>
             <div className="quick">
               {[50, 75, 90, 100].map((p) => (
                 <button key={p} className={mix.tempo === p ? 'on' : ''} onClick={() => setM('tempo', p)}>
@@ -329,12 +336,12 @@ function SongPlayer({ song, selKey }: { song: SongData; selKey: string }) {
             </div>
           </Slider>
           <Slider label="Band" value={mix.band} onChange={(v) => setM('band', v)} />
-          <Slider label="Dob" value={mix.drums} onChange={(v) => setM('drums', v)} />
-          <Slider label="Metronóm" value={mix.metro} onChange={(v) => setM('metro', v)} />
+          <Slider label={pick('Dob', 'Drums')} value={mix.drums} onChange={(v) => setM('drums', v)} />
+          <Slider label={pick('Metronóm', 'Metronome')} value={mix.metro} onChange={(v) => setM('metro', v)} />
         </section>
 
         <Link className="btn ghost back-link" to={back}>
-          ← Vissza
+          ← {t.back}
         </Link>
       </main>
     </>
