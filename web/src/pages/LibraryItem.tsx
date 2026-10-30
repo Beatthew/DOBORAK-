@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ClipPlayer } from '../components/ClipPlayer';
 import { GearQuiz } from '../components/GearQuiz';
 import { ScorePlayer } from '../components/Score';
 import { StrokesLesson } from '../components/Strokes';
@@ -9,6 +10,7 @@ import { GEAR_REF } from '../data/gear';
 import { STROKES_REF } from '../data/strokes';
 import { useI18n } from '../i18n';
 import { supabase } from '../lib/supabase';
+import { findClip } from '../songs/clips';
 
 /** Egy tétel: visszahallgatható kotta, és ha képről készült, az eredeti kép. */
 export function LibraryItem() {
@@ -19,6 +21,7 @@ export function LibraryItem() {
   const item = items.find((i) => i.id === itemId && i.category === cat);
   const backLabel = text(categories.find((c) => c.id === cat)?.name ?? 'Tananyag');
   const bars = useMemo(() => (item?.bars ?? []).map(toBeats), [item]);
+  const clip = findClip(`${cat}/${itemId}`);
   const [bpm, setBpm] = useState(90);
   const [image, setImage] = useState('');
 
@@ -82,7 +85,9 @@ export function LibraryItem() {
         {item.subtitle && <p className="top-sub">{text(item.subtitle)}</p>}
       </TopBar>
       <main className="page">
-        {bars.length > 0 ? (
+        {clip ? (
+          <ClipPlayer clip={clip} />
+        ) : bars.length > 0 ? (
           <ScorePlayer id={item.id} bars={bars} bpm={bpm} onBpm={setBpm} />
         ) : (
           <p className="note-box">{pick('Ez a tétel még nincs átírva kottára.', 'This item has not been transcribed yet.')}</p>

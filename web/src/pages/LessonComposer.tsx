@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ClipPlayer } from '../components/ClipPlayer';
 import { Score, ScorePlayer } from '../components/Score';
 import { Sortable } from '../components/Sortable';
 import { TopBar } from '../components/TopBar';
@@ -8,6 +9,7 @@ import { subdivisionOf, SUBDIVISIONS, toBeats, useLibrary, type ScoreBar, type S
 import { useI18n } from '../i18n';
 import { inLessonOrder, KIND_LABEL, supabase, type LessonRow, type Material, type Profile } from '../lib/supabase';
 import { SONGS } from '../songs';
+import { findClip } from '../songs/clips';
 
 const READY_LESSONS = 'kesz-orak';
 const today = () => new Date().toISOString().slice(0, 10);
@@ -286,6 +288,7 @@ function EntryCard({ entry: e, onRemove, onMove }: { entry: Entry; onRemove: () 
   const { pick, text } = useI18n();
   const beats = useMemo(() => (e.bars ?? []).map(toBeats), [e.bars]);
   const [bpm, setBpm] = useState(e.bpm ?? 90);
+  const clip = e.kind === 'library' ? findClip(e.ref) : undefined;
   return (
     <article className="composer-card">
       <header>
@@ -315,7 +318,9 @@ function EntryCard({ entry: e, onRemove, onMove }: { entry: Entry; onRemove: () 
         </button>
       </header>
       <div className="composer-card-body">
-        {beats.length > 0 ? (
+        {clip ? (
+          <ClipPlayer clip={clip} />
+        ) : beats.length > 0 ? (
           <ScorePlayer id={`composer:${e.key}`} bars={beats} bpm={bpm} onBpm={setBpm} />
         ) : e.kind === 'song' && e.ref ? (
           <Link className="btn small primary" to={songPath(e.ref)}>

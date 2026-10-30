@@ -6,6 +6,8 @@ import { GEAR_PATH, GEAR_REF } from '../data/gear';
 import { STROKES_PATH, STROKES_REF } from '../data/strokes';
 import { useI18n } from '../i18n';
 import { KIND_LABEL, openFile, type Material } from '../lib/supabase';
+import { findClip } from '../songs/clips';
+import { ClipPlayer } from './ClipPlayer';
 import { ScorePlayer } from './Score';
 
 const KIND_TONE: Record<Material['kind'], number> = { song: 0, exercise: 3, material: 1, library: 3 };
@@ -20,6 +22,7 @@ interface Props {
 export function MaterialCard({ m, onDelete }: Props) {
   const { pick, text, locale } = useI18n();
   const strokes = m.ref === STROKES_REF;
+  const clip = m.kind === 'library' ? findClip(m.ref) : undefined;
   const song = m.kind === 'song' ? findSong(m.ref) : undefined;
   const ex = m.kind === 'exercise' ? findExercise(m.ref) : undefined;
   const title = text(m.title || song?.title || ex?.title || KIND_LABEL[m.kind]);
@@ -36,7 +39,7 @@ export function MaterialCard({ m, onDelete }: Props) {
       {m.note && <p className="mat-note">{text(m.note)}</p>}
       {!strokes && beats.length > 0 && (
         <div className="mat-score">
-          <ScorePlayer id={m.id} bars={beats} bpm={bpm} onBpm={setBpm} />
+          {clip ? <ClipPlayer clip={clip} /> : <ScorePlayer id={m.id} bars={beats} bpm={bpm} onBpm={setBpm} />}
         </div>
       )}
       <div className="mat-actions">

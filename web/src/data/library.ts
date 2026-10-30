@@ -97,6 +97,19 @@ const TAUGHT: LibraryItem[] = [
     builtin: true,
   })),
   {
+    id: 'hit-you-back-groove-1',
+    category: 'grooveok',
+    title: 'groove 1',
+    subtitle: "I'll Hit You Back",
+    bpm: 111,
+    // a lejátszója a dalból kivágott felvétel: songs/clips.ts
+    bars: [{ beats: ['h+k h', 'h+s h', 'h h', 'h+s h+k'] }],
+    note: '',
+    image_path: null,
+    file_name: null,
+    builtin: true,
+  },
+  {
     id: 'strokes',
     category: 'technika',
     title: 'Strokes',
