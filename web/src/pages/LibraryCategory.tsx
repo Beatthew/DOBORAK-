@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { KitArt } from '../components/GearQuiz';
 import { Score } from '../components/Score';
 import { TopBar } from '../components/TopBar';
 import { songPath } from '../data/catalog';
+import { GEAR_REF } from '../data/gear';
 import { subdivisionOf, SUBDIVISIONS, toBeats, useLibrary, type Subdivision } from '../data/library';
 import { useI18n } from '../i18n';
 import { SONGS } from '../songs';
@@ -63,7 +65,7 @@ export function LibraryCategory() {
     <>
       <TopBar title={text(category.name)} backTo="/tananyag" backLabel={library} />
       <main className="page">
-        {mine.length > 0 && (
+        {mine.some((i) => i.bars.length > 0) && (
           <nav className="filters" aria-label={pick('Szűrők', 'Filters')}>
             <span>{pick('Szűrők:', 'Filters:')}</span>
             <button className={filter ? '' : 'on'} onClick={() => setFilter(null)}>
@@ -81,7 +83,9 @@ export function LibraryCategory() {
             <Link key={item.id} className={`item-tile tone-${i % 2}`} to={`/tananyag/${cat}/${item.id}`}>
               <span className="item-tile-title">{text(item.title)}</span>
               {item.subtitle && <span className="item-tile-sub">{text(item.subtitle)}</span>}
-              {item.bars.length ? (
+              {`${item.category}/${item.id}` === GEAR_REF ? (
+                <KitArt />
+              ) : item.bars.length ? (
                 <Score bars={[toBeats(item.bars[0])]} />
               ) : (
                 <span className="item-tile-sub">{item.image_path ? pick('Átírásra vár', 'Awaiting transcription') : pick('Nincs kotta', 'No score')}</span>

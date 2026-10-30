@@ -96,6 +96,8 @@ const EN_TEXT: Record<string, string> = {
   Gyakorlat: 'Exercise',
   Tananyag: 'Library',
   'Hangszerismeret / Gear': 'Instrument basics / Gear',
+  'Gear kvíz': 'Gear quiz',
+  'A dobfelszerelés kilenc hangszere': 'The nine instruments of the drum kit',
   Rudimentek: 'Rudiments',
   'Groove-ok': 'Grooves',
   Dalok: 'Songs',

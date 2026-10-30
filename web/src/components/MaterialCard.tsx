@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { findExercise, findSong, songPath } from '../data/catalog';
 import { toBeats } from '../data/library';
+import { GEAR_PATH, GEAR_REF } from '../data/gear';
 import { STROKES_PATH, STROKES_REF } from '../data/strokes';
 import { useI18n } from '../i18n';
 import { KIND_LABEL, openFile, type Material } from '../lib/supabase';
@@ -40,6 +41,7 @@ export function MaterialCard({ m, onDelete }: Props) {
       )}
       <div className="mat-actions">
         {strokes && <Link className="btn primary" to={STROKES_PATH}>{pick('Megnyitás', 'Open')}</Link>}
+        {m.ref === GEAR_REF && <Link className="btn primary" to={GEAR_PATH}>{pick('Megnyitás', 'Open')}</Link>}
         {song && <Link className="btn primary" to={songPath(song.id)}>{pick('Gyakorlás', 'Practice')}</Link>}
         {ex && <Link className="btn primary" to={`/lesson/${ex.ref}`}>{pick('Megnyitás', 'Open')}</Link>}
         {m.file_path && (

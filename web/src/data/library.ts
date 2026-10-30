@@ -109,6 +109,19 @@ const TAUGHT: LibraryItem[] = [
     file_name: null,
     builtin: true,
   },
+  {
+    id: 'gear-kviz',
+    category: 'hangszerismeret',
+    title: 'Gear kvíz',
+    subtitle: 'A dobfelszerelés kilenc hangszere',
+    bpm: 90,
+    // nincs kottája: a teljes anyag a components/GearQuiz.tsx-ben van
+    bars: [],
+    note: '',
+    image_path: null,
+    file_name: null,
+    builtin: true,
+  },
 ];
 
 export const MISSING_TABLES =

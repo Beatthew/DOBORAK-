@@ -971,6 +971,16 @@ button.lesson-card {
   background: var(--ink);
   color: var(--paper);
   min-width: 0;
+  /* A kártya mindig sötét: egy világos tónuson belül is a sötét alapú kottaszínek kellenek (lásd songs/notation.ts). */
+  --n-ink: initial;
+  --n-staff: initial;
+  --n-bar: initial;
+  --n-num: initial;
+  --n-head: initial;
+  --n-hl: initial;
+  --n-fill: initial;
+  --n-fillbg: initial;
+  --n-ride: initial;
 }
 
 .score-head {
@@ -1857,6 +1867,55 @@ label.form textarea.code {
   padding: 18px;
 }
 
+/* Húzható kártyák: a telefon kezdőképernyőjének mintájára */
+.sortable-item {
+  display: flex;
+  min-width: 0;
+  cursor: grab;
+  -webkit-touch-callout: none;
+}
+
+.sortable-item > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.sortable-item.dragging {
+  position: relative;
+  z-index: 20;
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sortable-item.dragging > * {
+  transform: scale(1.03);
+  box-shadow: 0 16px 36px rgba(0, 8, 7, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.composer-card .grip {
+  flex: none;
+  width: 32px;
+  height: 44px;
+  margin: 0 -6px 0 -8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--paper);
+  cursor: grab;
+}
+
+.composer-card .grip svg {
+  display: block;
+  margin: auto;
+}
+
+.composer-card header > div {
+  flex: 1;
+  min-width: 0;
+}
+
 .composer-fields {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -2316,5 +2375,179 @@ label.form textarea.code {
     flex: 1;
     min-width: 0;
     max-height: 200px;
+  }
+}
+
+/* ---------- Gear kvíz ---------- */
+
+.gear-quiz {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.gear-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 20px;
+}
+
+.gear-stage {
+  perspective: 1400px;
+  touch-action: pan-y;
+}
+
+.gear-card {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  animation: gear-in 0.25s ease-out;
+}
+
+@keyframes gear-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.gear-flip {
+  display: grid;
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+.gear-card.flipped .gear-flip {
+  transform: rotateY(180deg);
+}
+
+.gear-face {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.gear-face.back {
+  align-items: center;
+  padding-bottom: 20px;
+  transform: rotateY(180deg);
+}
+
+.gear-face.front .gear-art {
+  aspect-ratio: 4 / 3;
+}
+
+.gear-face.back .gear-art {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+}
+
+.gear-prompt {
+  padding: 0 16px 16px;
+  font-size: 17px;
+  font-weight: 800;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.gear-prompt.on {
+  opacity: 1;
+}
+
+.gear-name {
+  padding: 8px 12px 0;
+  font-stretch: 78%;
+  font-weight: 900;
+  font-size: clamp(40px, 12vw, 68px);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.gear-other {
+  margin-top: 6px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.gear-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* A rajz: minden szín a kártya tónusából jön; a vonal zoomnál sem vastagszik. */
+.gear-art {
+  --gear-hi: var(--fg);
+  --gear-tint: color-mix(in srgb, var(--fg) 12%, var(--bg));
+  --gear-dim: color-mix(in srgb, var(--fg) 34%, var(--bg));
+  display: block;
+  width: 100%;
+  fill: var(--bg);
+  stroke: var(--fg);
+  stroke-width: 1.6px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tone-1 .gear-art {
+  --gear-hi: var(--mint);
+  --gear-tint: color-mix(in srgb, var(--mint) 24%, var(--bg));
+}
+
+.gear-art * {
+  vector-effect: non-scaling-stroke;
+}
+
+.gear-art .open {
+  fill: none;
+}
+
+.gear-art .fine {
+  stroke-width: 1px;
+}
+
+.gear-part {
+  transition: stroke 0.45s, fill 0.45s;
+}
+
+.gear-art.lit .gear-part {
+  stroke: var(--gear-dim);
+}
+
+.gear-art.lit .gear-part.on {
+  stroke: var(--gear-hi);
+  stroke-width: 2.2px;
+  fill: var(--gear-tint);
+}
+
+.item-tile .gear-art {
+  margin-top: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gear-card {
+    animation: none;
+  }
+  .gear-flip,
+  .gear-part {
+    transition: none;
   }
 }

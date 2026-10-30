@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Score, ScorePlayer } from '../components/Score';
+import { Sortable } from '../components/Sortable';
 import { TopBar } from '../components/TopBar';
 import { exerciseList, findExercise, findSong, songPath } from '../data/catalog';
 import { subdivisionOf, SUBDIVISIONS, toBeats, useLibrary, type ScoreBar, type Subdivision } from '../data/library';
 import { useI18n } from '../i18n';
-import { KIND_LABEL, supabase, type LessonRow, type Material, type Profile } from '../lib/supabase';
+import { inLessonOrder, KIND_LABEL, supabase, type LessonRow, type Material, type Profile } from '../lib/supabase';
 import { SONGS } from '../songs';
 
 const READY_LESSONS = 'kesz-orak';
@@ -24,6 +25,7 @@ interface Entry {
   image?: string | null;
   fileName?: string | null;
   materialId?: string;
+  position?: number | null;
   filePath?: string | null;
   /** A régi, az óra sorába írt dobóra-hivatkozás. */
   doborak?: boolean;
@@ -51,6 +53,7 @@ function fromMaterial(m: Material): Entry {
     bpm: m.bpm ?? undefined,
     fileName: m.file_name,
     materialId: m.id,
+    position: m.position,
     filePath: m.file_path,
   };
 }
@@ -98,7 +101,7 @@ export function LessonComposer() {
       setNumber(current ? all.indexOf(current) + 1 : null);
       if (!current) return;
       const dob = findExercise(current.doborak);
-      const entries = ((m?.data as Material[]) ?? []).map(fromMaterial);
+      const entries = inLessonOrder((m?.data as Material[]) ?? []).map(fromMaterial);
       if (dob) entries.unshift({ key: `exercise:${dob.ref}`, kind: 'exercise', ref: dob.ref, title: dob.title, sub: '', doborak: true });
       setSaved(entries);
       setDraft({ date: current.date, title: current.title, notes: current.notes, entries });
@@ -121,6 +124,13 @@ export function LessonComposer() {
           : [...d.entries, entry],
       },
     );
+  const moveEntry = (from: number, to: number) =>
+    setDraft((d) => {
+      if (!d) return d;
+      const entries = [...d.entries];
+      entries.splice(to, 0, ...entries.splice(from, 1));
+      return { ...d, entries };
+    });
   const go = (t?: string) => {
     window.scrollTo(0, 0);
     nav(t ? `${base}?t=${encodeURIComponent(t)}` : base);
@@ -132,7 +142,7 @@ export function LessonComposer() {
     setBusy(true);
     const fail = (message: string) => {
       setBusy(false);
-      alert(/bars|bpm|materials_kind_check/.test(message) ? pick('A mentéshez egyszer le kell futtatni a supabase/005_ora_tananyagbol.sql fájlt a Supabase SQL Editorban.', 'To save, run supabase/005_ora_tananyagbol.sql once in the Supabase SQL Editor.') : message);
+      alert(/position/.test(message) ? pick('A mentéshez egyszer le kell futtatni a supabase/007_anyag_sorrend.sql fájlt a Supabase SQL Editorban.', 'To save, run supabase/007_anyag_sorrend.sql once in the Supabase SQL Editor.') : /bars|bpm|materials_kind_check/.test(message) ? pick('A mentéshez egyszer le kell futtatni a supabase/005_ora_tananyagbol.sql fájlt a Supabase SQL Editorban.', 'To save, run supabase/005_ora_tananyagbol.sql once in the Supabase SQL Editor.') : message);
     };
     const row = {
       date: draft.date,
@@ -147,7 +157,9 @@ export function LessonComposer() {
     if (res.error) return fail(res.error.message);
     const savedId = (res.data as { id: string }).id;
 
-    const added = draft.entries.filter((e) => !e.materialId && !e.doborak);
+    // a kész óra nem anyag: a diák oldalán mindig az első, a sorrendbe nem számít bele
+    const ordered = draft.entries.filter((e) => !e.doborak);
+    const added = ordered.filter((e) => !e.materialId);
     const rows = [];
     for (const e of added) {
       let filePath: string | null = null;
@@ -165,12 +177,18 @@ export function LessonComposer() {
         note: e.kind === 'library' ? e.sub : '',
         bars: e.bars ?? null,
         bpm: e.bpm ?? null,
+        position: ordered.indexOf(e),
         file_path: filePath,
         file_name: filePath ? e.fileName ?? null : null,
       });
     }
     if (rows.length) {
       const { error } = await supabase.from('materials').insert(rows);
+      if (error) return fail(error.message);
+    }
+    for (const [position, e] of ordered.entries()) {
+      if (!e.materialId || e.position === position) continue;
+      const { error } = await supabase.from('materials').update({ position }).eq('id', e.materialId);
       if (error) return fail(error.message);
     }
 
@@ -224,9 +242,9 @@ export function LessonComposer() {
       <TopBar title={heading} backTo={`/diak/${id}`} backLabel={name} />
       <main className="page">
         <div className="composer-grid">
-          {draft.entries.map((e) => (
-            <EntryCard key={e.key} entry={e} onRemove={() => toggle(e)} />
-          ))}
+          <Sortable items={draft.entries} keyOf={(e) => e.key} onMove={moveEntry}>
+            {(e, move) => <EntryCard entry={e} onRemove={() => toggle(e)} onMove={move} />}
+          </Sortable>
           <button className="add-tile composer-add" onClick={() => go('kategoriak')}>
             <span className="add-plus">+</span>
             <span className="item-tile-title">{draft.entries.length ? pick('Még hozzáadok', 'Add more') : pick('Tananyag hozzáadása', 'Add from library')}</span>
@@ -264,13 +282,30 @@ export function LessonComposer() {
   );
 }
 
-function EntryCard({ entry: e, onRemove }: { entry: Entry; onRemove: () => void }) {
+function EntryCard({ entry: e, onRemove, onMove }: { entry: Entry; onRemove: () => void; onMove: (delta: number) => void }) {
   const { pick, text } = useI18n();
   const beats = useMemo(() => (e.bars ?? []).map(toBeats), [e.bars]);
   const [bpm, setBpm] = useState(e.bpm ?? 90);
   return (
     <article className="composer-card">
       <header>
+        <button
+          type="button"
+          className="grip"
+          aria-label={`${pick('Áthelyezés a nyilakkal', 'Move with the arrow keys')}: ${text(e.title)}`}
+          onKeyDown={(k) => {
+            const delta = k.key === 'ArrowLeft' || k.key === 'ArrowUp' ? -1 : k.key === 'ArrowRight' || k.key === 'ArrowDown' ? 1 : 0;
+            if (!delta) return;
+            k.preventDefault();
+            onMove(delta);
+          }}
+        >
+          <svg width="14" height="22" viewBox="0 0 14 22" fill="currentColor" aria-hidden="true">
+            <circle cx="3" cy="3" r="2" /><circle cx="11" cy="3" r="2" />
+            <circle cx="3" cy="11" r="2" /><circle cx="11" cy="11" r="2" />
+            <circle cx="3" cy="19" r="2" /><circle cx="11" cy="19" r="2" />
+          </svg>
+        </button>
         <div>
           <h3>{text(e.title)}</h3>
           {e.sub && <p>{text(e.sub)}</p>}
@@ -376,7 +411,7 @@ function Browser({ cat, name, heading, base, picked, onToggle, onOpen }: Browser
     <>
       <TopBar title={title} backTo={`${base}?t=kategoriak`} backLabel={pick('Tananyag', 'Library')} />
       <main className="page">
-        {library.length > 0 && (
+        {library.some((i) => i.bars.length > 0) && (
           <nav className="filters" aria-label={pick('Szűrők', 'Filters')}>
             <span>{pick('Szűrők:', 'Filters:')}</span>
             <button className={filter ? '' : 'on'} onClick={() => setFilter(null)}>

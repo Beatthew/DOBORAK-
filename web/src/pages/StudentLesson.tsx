@@ -5,7 +5,7 @@ import { TopBar } from '../components/TopBar';
 import { useAuth } from '../auth';
 import { lessons as readyLessons } from '../data/lessons';
 import { useI18n } from '../i18n';
-import { supabase, type LessonRow, type Material } from '../lib/supabase';
+import { inLessonOrder, supabase, type LessonRow, type Material } from '../lib/supabase';
 import { lessonNumber } from './StudentHome';
 
 /** Egy óra a diák szemével: a tanár jegyzete, a kész óra és az órához csatolt anyagok. */
@@ -26,10 +26,10 @@ export function StudentLesson() {
       if (!studentId) return setLessons([]);
       const [l, m] = await Promise.all([
         db.from('lessons').select('*').eq('student_id', studentId).order('date', { ascending: false }),
-        db.from('materials').select('*').eq('lesson_id', lessonId).order('created_at', { ascending: false }),
+        db.from('materials').select('*').eq('lesson_id', lessonId).order('created_at'),
       ]);
       setLessons((l.data as LessonRow[]) ?? []);
-      setMaterials((m.data as Material[]) ?? []);
+      setMaterials(inLessonOrder((m.data as Material[]) ?? []));
     })();
   }, [lessonId]);
 

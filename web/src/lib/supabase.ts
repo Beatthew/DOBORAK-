@@ -44,8 +44,16 @@ export interface Material {
   /** A tananyagból kiválasztott tétel kottája (másolat, a diák nem látja a tananyag tábláit). */
   bars: { beats: string[]; hands?: string[] }[] | null;
   bpm: number | null;
+  /** Hányadik az órán belül; null, ami még nem kapott helyet (az a végére kerül, felvétel szerint). */
+  position?: number | null;
   created_at: string;
 }
+
+/** Egy óra anyagai a tanár által beállított sorrendben. */
+export const inLessonOrder = (list: Material[]) =>
+  [...list].sort(
+    (a, b) => (a.position ?? Infinity) - (b.position ?? Infinity) || a.created_at.localeCompare(b.created_at),
+  );
 
 export const KIND_LABEL: Record<Kind, string> = { material: 'Órai anyag', song: 'Dal', exercise: 'Gyakorlat', library: 'Tananyag' };
 
