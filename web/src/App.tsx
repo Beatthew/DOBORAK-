@@ -12,7 +12,6 @@ import { LibraryEdit } from './pages/LibraryEdit';
 import { LibraryItem } from './pages/LibraryItem';
 import { Login } from './pages/Login';
 import { SongPage } from './pages/SongPage';
-import { DevStudentTmp } from './pages/DevStudentTmp';
 import { StudentHome } from './pages/StudentHome';
 import { StudentLesson } from './pages/StudentLesson';
 import { Students } from './pages/Students';
@@ -65,7 +64,6 @@ export function App() {
             <Shell>
               <Routes>
                 <Route path="/" element={<Gate><Home /></Gate>} />
-                <Route path="/dev/tmp" element={<DevStudentTmp />} />
                 <Route path="/ora/:lessonId" element={<Gate><StudentLesson /></Gate>} />
                 <Route path="/diak/:id" element={<Gate teacher><TeacherStudent /></Gate>} />
                 <Route path="/diak/:id/uj-ora" element={<Gate teacher><LessonComposer /></Gate>} />
