@@ -139,7 +139,7 @@ export function strokeBarSVG(beats: Beats, strokes: string, hands: [string, stri
   let g = hlRect(0, w, 0) + staff(w) + drawBar(beats, 0, w, '');
   [...strokes].forEach((s, i) => (g += `<text class="stroke-letter" data-i="${i}" x="${slotX(i) + 6}" y="-3" text-anchor="middle" font-size="18" font-weight="800" fill="${C.ink}">${s}</text>`));
   hands.forEach((row, r) =>
-    [...row].forEach((h, i) => (g += `<text x="${slotX(i) + 6}" y="${yPos(8) + 20 + r * 19}" text-anchor="middle" font-size="16" font-weight="700" fill="${C.ink}">${h}</text>`)),
+    [...row].forEach((h, i) => (g += `<text class="hand-row" data-r="${r}" x="${slotX(i) + 6}" y="${yPos(8) + 20 + r * 19}" text-anchor="middle" font-size="16" font-weight="700" fill="${C.ink}">${h}</text>`)),
   );
   const dots = (x: number) => [-1, 1].map((d) => `<circle cx="${x}" cy="${midY + d * HS}" r="2" fill="${C.ink}"/>`).join('');
   if (repeat.open) g += `<rect x="0" y="${TOP}" width="4" height="${yPos(8) - TOP}" fill="${C.ink}"/>${dots(11)}`;

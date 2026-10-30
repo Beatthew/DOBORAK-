@@ -69,6 +69,47 @@ export const STROKE_EXERCISES: StrokeExercise[] = [
   two(27, 'DFDF'),
 ];
 
+export type Hand = 'R' | 'L';
+
+export interface HandHit {
+  /** Hol szól az ütés a körben, lépésben. */
+  t: number;
+  stroke: StrokeType;
+}
+
+const typeOf = (letter: string) => STROKE_TYPES.find((s) => s.letter === letter) ?? STROKE_TYPES[0];
+
+/** Melyik kéz mikor mit üt egy körben; lead = a kézrend felső (0, jobbról) vagy alsó (1, balról) sora. */
+export function handHits(ex: StrokeExercise, lead: 0 | 1, stepsPerBeat: number): Record<Hand, HandHit[]> {
+  const hits: Record<Hand, HandHit[]> = { R: [], L: [] };
+  const barSteps = ex.meter * stepsPerBeat;
+  ex.bars.forEach((bar, b) =>
+    [...bar].forEach((letter, i) =>
+      hits[ex.hands[lead][i] as Hand].push({ t: (b + i / bar.length) * barSteps, stroke: typeOf(letter) }),
+    ),
+  );
+  return hits;
+}
+
+/** A verő magassága: 0 = a bőrön, 1 = magas. */
+export const strokeHeight = (h: 'high' | 'low') => (h === 'high' ? 1 : 0.15);
+const ease = (x: number) => x * x * (3 - 2 * x);
+
+/** Hol jár egy kéz a körben: ütés után a típus végmagasságára pattan, a következő ütés előtt annak kezdőmagasságáról gyorsulva csap le. */
+export function handMotion(hits: HandHit[], loop: number, pos: number) {
+  const n = hits.findIndex((h) => h.t > pos);
+  const end = hits[hits.length - 1];
+  const last = n === 0 ? { ...end, t: end.t - loop } : n < 0 ? end : hits[n - 1];
+  const next = n < 0 ? { ...hits[0], t: hits[0].t + loop } : hits[n];
+  const gap = next.t - last.t, since = pos - last.t, edge = gap * 0.4;
+  const after = strokeHeight(last.stroke.to), before = strokeHeight(next.stroke.from);
+  let height: number;
+  if (since < edge) height = after * (1 - (1 - since / edge) ** 2);
+  else if (since > gap - edge) height = before * (1 - ((since - (gap - edge)) / edge) ** 2);
+  else height = after + (before - after) * ease((since - edge) / (gap - 2 * edge));
+  return { since, height, stroke: last.stroke };
+}
+
 /** Egy ütem kottaként: `sound` = a hangerő is benne van (hangsúly / ghost), különben csak a sima jegyfejek. */
 export function strokeBeats(bar: string, meter: number, sound: boolean): Beats {
   const perBeat = bar.length / meter;
