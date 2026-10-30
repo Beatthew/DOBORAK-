@@ -4,6 +4,8 @@ import type { Beats } from '../songs/types';
    a Full és a Down hangsúlyos, a Tap és az Up halk, így a gyakorlat hallatszik is. */
 
 export const STROKES_REF = 'technika/strokes';
+/** A kiadott anyag oldala (a diák is eléri). */
+export const STROKES_PATH = '/anyag/strokes';
 
 export type StrokeLetter = 'F' | 'D' | 'T' | 'U';
 

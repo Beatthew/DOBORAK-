@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { findExercise, findSong, songPath } from '../data/catalog';
+import { STROKES_PATH, STROKES_REF } from '../data/strokes';
 import { useI18n } from '../i18n';
 import { KIND_LABEL, openFile, type Material } from '../lib/supabase';
 import { MaterialCard } from './MaterialCard';
@@ -19,8 +20,9 @@ export function MaterialTile({ m, tone, back }: Props) {
   const { pick, text } = useI18n();
   const song = m.kind === 'song' ? findSong(m.ref) : undefined;
   const ex = m.kind === 'exercise' ? findExercise(m.ref) : undefined;
+  const strokes = m.ref === STROKES_REF;
   const targets = [song || ex, m.file_path, m.link_url].filter(Boolean).length;
-  if (targets !== 1 || m.bars?.length) return <MaterialCard m={m} />;
+  if (!strokes && (targets !== 1 || m.bars?.length)) return <MaterialCard m={m} />;
 
   const cls = `lesson-card tone-${tone}`;
   const kind = text(KIND_LABEL[m.kind]);
@@ -33,6 +35,7 @@ export function MaterialTile({ m, tone, back }: Props) {
     </div>
   );
 
+  if (strokes) return <Link className={cls} to={STROKES_PATH} state={{ back }}>{body}</Link>;
   if (song) return <Link className={cls} to={songPath(song.id)} state={{ back }}>{body}</Link>;
   if (ex) return <Link className={cls} to={`/lesson/${ex.ref}`} state={{ back }}>{body}</Link>;
   if (m.file_path) return <button className={cls} aria-label={`${pick('Megnyitás', 'Open')}: ${m.file_name || kind}`} onClick={() => openFile(m.file_path!)}>{body}</button>;

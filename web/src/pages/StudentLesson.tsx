@@ -16,23 +16,31 @@ export function StudentLesson() {
   const [lessons, setLessons] = useState<LessonRow[] | null>(null);
   const [materials, setMaterials] = useState<Material[]>([]);
 
+  // Az óra diákja az órából derül ki: a tanár is ezt az oldalt nyitja meg (a jogosultságot az adatbázis szabja meg).
   useEffect(() => {
-    if (!supabase || !profile) return;
-    void Promise.all([
-      supabase.from('lessons').select('*').eq('student_id', profile.id).order('date', { ascending: false }),
-      supabase.from('materials').select('*').eq('lesson_id', lessonId).order('created_at', { ascending: false }),
-    ]).then(([l, m]) => {
+    if (!supabase) return;
+    const db = supabase;
+    void (async () => {
+      const { data } = await db.from('lessons').select('student_id').eq('id', lessonId).maybeSingle();
+      const studentId = (data as { student_id: string } | null)?.student_id;
+      if (!studentId) return setLessons([]);
+      const [l, m] = await Promise.all([
+        db.from('lessons').select('*').eq('student_id', studentId).order('date', { ascending: false }),
+        db.from('materials').select('*').eq('lesson_id', lessonId).order('created_at', { ascending: false }),
+      ]);
       setLessons((l.data as LessonRow[]) ?? []);
       setMaterials((m.data as Material[]) ?? []);
-    });
-  }, [profile, lessonId]);
+    })();
+  }, [lessonId]);
 
-  const backLabel = pick('Óráim', 'My lessons');
   const lesson = lessons?.find((l) => l.id === lessonId);
+  const teacher = profile?.role === 'teacher' || (!!lesson && lesson.student_id !== profile?.id);
+  const backTo = teacher && lesson ? `/diak/${lesson.student_id}` : '/';
+  const backLabel = teacher ? pick('Diák', 'Student') : pick('Óráim', 'My lessons');
   if (!lesson) {
     return (
       <>
-        <TopBar title={pick('Óra', 'Lesson')} backTo="/" backLabel={backLabel} />
+        <TopBar title={pick('Óra', 'Lesson')} backTo={backTo} backLabel={backLabel} />
         <main className="page">
           <p className="muted">{lessons ? pick('Ez az óra nem található.', 'This lesson was not found.') : pick('Betöltés…', 'Loading…')}</p>
         </main>
@@ -47,7 +55,7 @@ export function StudentLesson() {
   const first = content ? 1 : 0;
   return (
     <>
-      <TopBar title={text(lesson.title) || t.lessonN(number)} backTo="/" backLabel={backLabel}>
+      <TopBar title={text(lesson.title) || t.lessonN(number)} backTo={backTo} backLabel={backLabel}>
         <p className="top-sub">{new Date(lesson.date).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
       </TopBar>
       <main className="page">

@@ -2,11 +2,10 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { findExercise, findSong, songPath } from '../data/catalog';
 import { toBeats } from '../data/library';
-import { STROKES_REF } from '../data/strokes';
+import { STROKES_PATH, STROKES_REF } from '../data/strokes';
 import { useI18n } from '../i18n';
 import { KIND_LABEL, openFile, type Material } from '../lib/supabase';
 import { ScorePlayer } from './Score';
-import { StrokesLesson } from './Strokes';
 
 const KIND_TONE: Record<Material['kind'], number> = { song: 0, exercise: 3, material: 1, library: 3 };
 
@@ -19,6 +18,7 @@ interface Props {
 /** Egy kiadott anyag: dal → a dal gyakorló oldala, gyakorlat → kész óra, fájl → letöltés, link → megnyitás. */
 export function MaterialCard({ m, onDelete }: Props) {
   const { pick, text, locale } = useI18n();
+  const strokes = m.ref === STROKES_REF;
   const song = m.kind === 'song' ? findSong(m.ref) : undefined;
   const ex = m.kind === 'exercise' ? findExercise(m.ref) : undefined;
   const title = text(m.title || song?.title || ex?.title || KIND_LABEL[m.kind]);
@@ -33,16 +33,13 @@ export function MaterialCard({ m, onDelete }: Props) {
       <h3>{title}</h3>
       {song && song.artist && <p className="mat-sub">{song.artist}</p>}
       {m.note && <p className="mat-note">{text(m.note)}</p>}
-      {m.ref === STROKES_REF ? (
-        <div className="mat-score">
-          <StrokesLesson />
-        </div>
-      ) : beats.length > 0 && (
+      {!strokes && beats.length > 0 && (
         <div className="mat-score">
           <ScorePlayer id={m.id} bars={beats} bpm={bpm} onBpm={setBpm} />
         </div>
       )}
       <div className="mat-actions">
+        {strokes && <Link className="btn primary" to={STROKES_PATH}>{pick('Megnyitás', 'Open')}</Link>}
         {song && <Link className="btn primary" to={songPath(song.id)}>{pick('Gyakorlás', 'Practice')}</Link>}
         {ex && <Link className="btn primary" to={`/lesson/${ex.ref}`}>{pick('Megnyitás', 'Open')}</Link>}
         {m.file_path && (

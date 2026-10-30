@@ -13,7 +13,9 @@ import { LibraryItem } from './pages/LibraryItem';
 import { Login } from './pages/Login';
 import { SongPage } from './pages/SongPage';
 import { StudentHome } from './pages/StudentHome';
+import { StrokesPage } from './pages/StrokesPage';
 import { StudentLesson } from './pages/StudentLesson';
+import { STROKES_PATH } from './data/strokes';
 import { Students } from './pages/Students';
 import { TeacherHome } from './pages/TeacherHome';
 import { TeacherStudent } from './pages/TeacherStudent';
@@ -65,6 +67,7 @@ export function App() {
               <Routes>
                 <Route path="/" element={<Gate><Home /></Gate>} />
                 <Route path="/ora/:lessonId" element={<Gate><StudentLesson /></Gate>} />
+                <Route path={STROKES_PATH} element={<Gate><StrokesPage /></Gate>} />
                 <Route path="/diak/:id" element={<Gate teacher><TeacherStudent /></Gate>} />
                 <Route path="/diak/:id/uj-ora" element={<Gate teacher><LessonComposer /></Gate>} />
                 <Route path="/diak/:id/ora/:lessonId" element={<Gate teacher><LessonComposer /></Gate>} />

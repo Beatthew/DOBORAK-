@@ -81,7 +81,7 @@ function List({ items, empty }: { items: Material[]; empty: string }) {
 }
 
 /** A diák órái: az egész kártya az órába visz (StudentLesson); az órához nem kötött anyagok külön. */
-export function MyLessons({ lessons, materials }: { lessons: LessonRow[]; materials: Material[] }) {
+function MyLessons({ lessons, materials }: { lessons: LessonRow[]; materials: Material[] }) {
   const { t, pick, text, locale } = useI18n();
   const loose = materials.filter((m) => m.kind === 'material' && !m.lesson_id);
   if (!lessons.length && !loose.length) return <p className="muted">{pick('Még nincs rögzített óra.', 'No lessons yet.')}</p>;
@@ -113,7 +113,7 @@ export function MyLessons({ lessons, materials }: { lessons: LessonRow[]; materi
   );
 }
 
-/** Az órák nagy kártyákon (mint a kész órák listája), mindegyik alatt az órához csatolt anyagok;
+/** Az órák nagy kártyákon (mint a kész órák listája); az órához csatolt anyagok a kártya mögött, az óra oldalán;
  *  a semmilyen órához nem kötött órai anyagok külön. */
 interface LessonsListProps {
   lessons: LessonRow[];
@@ -141,7 +141,7 @@ export function LessonsList({ lessons, materials, onDelete, onEdit, back, ascend
         const title = text(l.title) || t.lessonN(number);
         const summary = content
           ? t.summary({ grooves: content.grooveIds.length, fills: content.fillIds.length, exercises: content.exercises.length, songs: content.songs.length })
-          : '';
+          : att.length ? pick(`${att.length} anyag`, `${att.length} ${att.length === 1 ? 'item' : 'items'}`) : '';
         const body = (
           <>
             <div className="lesson-card-num">{number}</div>
@@ -156,8 +156,12 @@ export function LessonsList({ lessons, materials, onDelete, onEdit, back, ascend
         return (
           <section key={l.id} className="lesson-group">
             <div className="lesson-row">
-              {content ? (
+              {content && !att.length ? (
                 <Link className={tone} to={`/lesson/${content.number}`} state={{ back }}>
+                  {body}
+                </Link>
+              ) : att.length ? (
+                <Link className={tone} to={`/ora/${l.id}`}>
                   {body}
                 </Link>
               ) : (
@@ -169,9 +173,6 @@ export function LessonsList({ lessons, materials, onDelete, onEdit, back, ascend
                 </button>
               )}
             </div>
-            {att.map((m) => (
-              <MaterialCard key={m.id} m={m} onDelete={onDelete && (() => onDelete(m))} />
-            ))}
           </section>
         );
       })}
