@@ -2,9 +2,11 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { findExercise, findSong, songPath } from '../data/catalog';
 import { toBeats } from '../data/library';
+import { STROKES_REF } from '../data/strokes';
 import { useI18n } from '../i18n';
 import { KIND_LABEL, openFile, type Material } from '../lib/supabase';
 import { ScorePlayer } from './Score';
+import { StrokesLesson } from './Strokes';
 
 const KIND_TONE: Record<Material['kind'], number> = { song: 0, exercise: 3, material: 1, library: 3 };
 
@@ -31,7 +33,11 @@ export function MaterialCard({ m, onDelete }: Props) {
       <h3>{title}</h3>
       {song && song.artist && <p className="mat-sub">{song.artist}</p>}
       {m.note && <p className="mat-note">{text(m.note)}</p>}
-      {beats.length > 0 && (
+      {m.ref === STROKES_REF ? (
+        <div className="mat-score">
+          <StrokesLesson />
+        </div>
+      ) : beats.length > 0 && (
         <div className="mat-score">
           <ScorePlayer id={m.id} bars={beats} bpm={bpm} onBpm={setBpm} />
         </div>

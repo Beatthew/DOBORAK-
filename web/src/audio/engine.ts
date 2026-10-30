@@ -277,14 +277,14 @@ export const SCORE_DIV = 12;
 /** Notated bars (songs/notation.ts) as playable bars. */
 export function scoreBars(bars: Beats[]): Bar[] {
   return bars.map((beats) => {
-    const score: string[][] = Array.from({ length: SCORE_DIV * 4 }, () => []);
+    const score: string[][] = Array.from({ length: SCORE_DIV * beats.length }, () => []);
     beats.forEach((beat, q) => {
       const slots = beat.trim().split(/\s+/);
       slots.forEach((slot, i) => {
         if (slot !== '-') score[q * SCORE_DIV + (i * SCORE_DIV) / slots.length].push(...slot.split('+'));
       });
     });
-    return { steps: SCORE_DIV * 4, score, cymbal: 'hh', crash: false };
+    return { steps: SCORE_DIV * beats.length, score, cymbal: 'hh', crash: false };
   });
 }
 

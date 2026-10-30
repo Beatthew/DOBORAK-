@@ -1972,3 +1972,253 @@ label.form textarea.code {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* ---------- Strokes tananyag ---------- */
+
+.strokes {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.strokes .muted {
+  margin: 0;
+}
+
+.stroke-types {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stroke-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--fg);
+  min-width: 0;
+}
+
+.stroke-tile p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.stroke-tile h3 {
+  margin: 0;
+  font-stretch: 78%;
+  font-size: 22px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.stroke-tile h3 span {
+  font-weight: 600;
+}
+
+.stroke-tile-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stroke-anim {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.stroke-v {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  overflow: visible;
+}
+
+.stroke-stick {
+  transform-origin: 152px 66px;
+  animation: stroke-stick 2.4s infinite;
+}
+
+.stroke-hit {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: stroke-hit 2.4s infinite;
+}
+
+.stroke-dot {
+  animation: stroke-dot 2.4s infinite;
+}
+
+/* A leütés gyorsul, a visszatérés lassul; a 40%-nál mind a három elem az ütés pillanatában van. */
+@keyframes stroke-stick {
+  0%,
+  18% {
+    transform: rotate(var(--from));
+    animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.5);
+  }
+  40% {
+    transform: rotate(0deg);
+    animation-timing-function: cubic-bezier(0.1, 0.6, 0.4, 1);
+  }
+  62%,
+  82% {
+    transform: rotate(var(--to));
+    animation-timing-function: ease-in-out;
+  }
+  100% {
+    transform: rotate(var(--from));
+  }
+}
+
+@keyframes stroke-dot {
+  0%,
+  18% {
+    transform: translate(8px, var(--v-from));
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.5);
+  }
+  40% {
+    transform: translate(22px, 38px);
+    animation-timing-function: cubic-bezier(0.1, 0.6, 0.4, 1);
+  }
+  62%,
+  82% {
+    transform: translate(36px, var(--v-to));
+    opacity: 1;
+  }
+  90%,
+  99% {
+    transform: translate(36px, var(--v-to));
+    opacity: 0;
+  }
+  100% {
+    transform: translate(8px, var(--v-from));
+    opacity: 0;
+  }
+}
+
+@keyframes stroke-hit {
+  0%,
+  39% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(0.5);
+  }
+  58%,
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stroke-stick {
+    animation: none;
+    transform: rotate(var(--from));
+  }
+  .stroke-hit {
+    animation: none;
+  }
+  .stroke-dot {
+    animation: none;
+    transform: translate(22px, 38px);
+  }
+}
+
+.stroke-tempo {
+  flex: none;
+}
+
+.strokes .slider.tempo b {
+  color: inherit;
+}
+
+.strokes .slider.tempo input {
+  accent-color: var(--teal);
+}
+
+.stroke-exercises {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stroke-ex {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 8px;
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--fg);
+  min-width: 0;
+}
+
+.stroke-ex.wide,
+.stroke-ex.full {
+  grid-column: span 2;
+}
+
+.stroke-ex header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stroke-ex header b {
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.stroke-ex header span {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.stroke-ex .play-btn {
+  width: 40px;
+  height: 40px;
+  margin-left: auto;
+  background: var(--ink);
+  color: var(--mint);
+}
+
+.stroke-ex .play-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.stroke-letter.on {
+  fill: var(--teal);
+  font-weight: 900;
+}
+
+@media (min-width: 760px) {
+  .stroke-types,
+  .stroke-exercises {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .stroke-ex.full {
+    grid-column: 1 / -1;
+  }
+  .stroke-ex.full .stroke-score {
+    flex-direction: row;
+  }
+  .stroke-ex.full .stroke-score svg {
+    flex: 1;
+    min-width: 0;
+  }
+}

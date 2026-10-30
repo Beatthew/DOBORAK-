@@ -96,6 +96,19 @@ const TAUGHT: LibraryItem[] = [
     file_name: null,
     builtin: true,
   })),
+  {
+    id: 'strokes',
+    category: 'technika',
+    title: 'Strokes',
+    subtitle: 'A négy ütéstípus és 27 gyakorlat',
+    bpm: 70,
+    // csak a tile előnézete: a teljes anyag a components/Strokes.tsx-ben van
+    bars: [{ beats: ['s s', 's s', 's s', 's s'], hands: ['R L', 'R L', 'R L', 'R L'] }],
+    note: '',
+    image_path: null,
+    file_name: null,
+    builtin: true,
+  },
 ];
 
 export const MISSING_TABLES =

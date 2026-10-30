@@ -62,7 +62,7 @@ export function drawBar(beats: Beats | null | undefined, x0: number, w: number, 
     g += `<text x="${x0 + 34}" y="${ly}" font-size="12" font-weight="800" letter-spacing="1.5" fill="${C.ride}">RIDE</text>`;
   g += `<line x1="${x0 + w}" x2="${x0 + w}" y1="${TOP}" y2="${yPos(8)}" stroke="${C.barline}" stroke-width="1.6"/>`;
   if (!beats) return g;
-  const inner = w - PADL - PADR, bw = inner / 4;
+  const inner = w - PADL - PADR, bw = inner / beats.length;
   if (beats.every((b) => /^[-\s]+$/.test(b))) return g + `<rect x="${x0 + w / 2 - 9}" y="${yPos(2)}" width="18" height="6" fill="${C.ink}"/>`;
   beats.forEach((beat, bi) => {
     const slots = beat.trim().split(/\s+/), m = slots.length;
@@ -130,6 +130,22 @@ export function rowSVG(bars: (Beats | null | undefined)[], nums: (number | strin
   bars.forEach((b, i) => (g += drawBar(b, i * w, w, nums[i], marks)));
   g += bars.map((_, i) => phLine(i * w, i)).join('');
   return `<svg viewBox="0 -12 ${vw} ${VIEWBOX_H}" data-w="${w}" preserveAspectRatio="xMidYMid meet">${g}</svg>`;
+}
+
+/** egy ütés-gyakorlat ütemének egy sora: fölül az ütéstípus betűi, alul a két kézrend, az ismétlőjelek a sor szélén */
+export function strokeBarSVG(beats: Beats, strokes: string, hands: [string, string], w: number, repeat: { open: boolean; close: boolean }) {
+  const inner = w - PADL - PADR, midY = yPos(4);
+  const slotX = (i: number) => PADL + 8 + (i / strokes.length) * inner;
+  let g = hlRect(0, w, 0) + staff(w) + drawBar(beats, 0, w, '');
+  [...strokes].forEach((s, i) => (g += `<text class="stroke-letter" data-i="${i}" x="${slotX(i) + 6}" y="-3" text-anchor="middle" font-size="18" font-weight="800" fill="${C.ink}">${s}</text>`));
+  hands.forEach((row, r) =>
+    [...row].forEach((h, i) => (g += `<text x="${slotX(i) + 6}" y="${yPos(8) + 20 + r * 19}" text-anchor="middle" font-size="16" font-weight="700" fill="${C.ink}">${h}</text>`)),
+  );
+  const dots = (x: number) => [-1, 1].map((d) => `<circle cx="${x}" cy="${midY + d * HS}" r="2" fill="${C.ink}"/>`).join('');
+  if (repeat.open) g += `<rect x="0" y="${TOP}" width="4" height="${yPos(8) - TOP}" fill="${C.ink}"/>${dots(11)}`;
+  if (repeat.close) g += `<rect x="${w - 4}" y="${TOP}" width="4" height="${yPos(8) - TOP}" fill="${C.ink}"/>${dots(w - 11)}`;
+  g += phLine(0, 0);
+  return `<svg viewBox="0 -20 ${w} 158" data-w="${w}" preserveAspectRatio="xMidYMid meet">${g}</svg>`;
 }
 
 /** kiemelés + lejátszófej egy kottasoron: i = az aktív ütem indexe a sorban (vagy -1), frac = hol tart benne */

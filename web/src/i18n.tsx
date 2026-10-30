@@ -102,6 +102,7 @@ const EN_TEXT: Record<string, string> = {
   Fillek: 'Fills',
   Stílusgyakorlatok: 'Style exercises',
   Technika: 'Technique',
+  'A négy ütéstípus és 27 gyakorlat': 'The four stroke types and 27 exercises',
   Transzkripciók: 'Transcriptions',
   Ritmusgyakorlatok: 'Rhythm exercises',
   Negyedes: 'Quarter',

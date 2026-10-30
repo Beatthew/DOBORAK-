@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ScorePlayer } from '../components/Score';
+import { StrokesLesson } from '../components/Strokes';
 import { TopBar } from '../components/TopBar';
 import { toBeats, useLibrary } from '../data/library';
+import { STROKES_REF } from '../data/strokes';
 import { useI18n } from '../i18n';
 import { supabase } from '../lib/supabase';
 
@@ -45,6 +47,19 @@ export function LibraryItem() {
     if (error) return alert(error.message);
     nav(`/tananyag/${cat}`, { replace: true });
   };
+
+  if (`${item.category}/${item.id}` === STROKES_REF) {
+    return (
+      <>
+        <TopBar title={text(item.title)} backTo={`/tananyag/${cat}`} backLabel={backLabel}>
+          <p className="top-sub">{text(item.subtitle)}</p>
+        </TopBar>
+        <main className="page">
+          <StrokesLesson />
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
