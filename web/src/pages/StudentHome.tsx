@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { PencilIcon } from '../components/Icons';
 import { MaterialCard } from '../components/MaterialCard';
 import { TopBar } from '../components/TopBar';
 import { useAuth } from '../auth';
-import { findExercise } from '../data/catalog';
+import { lessons as readyLessons } from '../data/lessons';
+import { useI18n } from '../i18n';
 import { supabase, type LessonRow, type Material } from '../lib/supabase';
 
 type Tab = 'lessons' | 'songs' | 'exercises';
@@ -71,44 +73,62 @@ function List({ items, empty }: { items: Material[]; empty: string }) {
   );
 }
 
-/** Az órák időrendben, mindegyik alatt az órához csatolt anyagok; a semmilyen órához nem kötött órai anyagok külön. */
+/** Az órák nagy kártyákon (mint a kész órák listája), mindegyik alatt az órához csatolt anyagok;
+ *  a semmilyen órához nem kötött órai anyagok külön. */
 interface LessonsListProps {
   lessons: LessonRow[];
   materials: Material[];
   /** Tanári nézetben: anyag törlése, óra szerkesztése. */
   onDelete?: (m: Material) => void;
   onEdit?: (l: LessonRow) => void;
+  /** Ide visz vissza az órából a fejléc. */
+  back?: string;
+  /** A legrégebbi óra elöl (a tanári nézet: 1, 2, 3, +). */
+  ascending?: boolean;
 }
 
-export function LessonsList({ lessons, materials, onDelete, onEdit }: LessonsListProps) {
+export function LessonsList({ lessons, materials, onDelete, onEdit, back, ascending }: LessonsListProps) {
+  const { t } = useI18n();
   const loose = materials.filter((m) => m.kind === 'material' && !m.lesson_id);
-  if (!lessons.length && !loose.length) return <p className="muted">Még nincs rögzített órád.</p>;
+  if (!lessons.length && !loose.length) return <p className="muted">Még nincs rögzített óra.</p>;
   return (
     <div className="grid">
-      {lessons.map((l) => {
+      {(ascending ? [...lessons].reverse() : lessons).map((l) => {
+        const i = lessons.indexOf(l);
         const att = materials.filter((m) => m.lesson_id === l.id);
-        const dob = findExercise(l.doborak);
-        return (
-          <section key={l.id} className="lesson-box">
-            <div className="lesson-box-head">
-              <b>{l.title || 'Óra'}</b>
-              <span>{new Date(l.date).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        const content = readyLessons.find((x) => String(x.number) === l.doborak);
+        const number = content?.number ?? lessons.length - i;
+        const date = new Date(l.date).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' });
+        const summary = content
+          ? t.summary({ grooves: content.grooveIds.length, fills: content.fillIds.length, exercises: content.exercises.length, songs: content.songs.length })
+          : '';
+        const body = (
+          <>
+            <div className="lesson-card-num">{number}</div>
+            <div className="lesson-card-text">
+              <div className="lesson-card-title">{l.title || `${number}. óra`}</div>
+              <div className="lesson-card-sub">{[date, summary].filter(Boolean).join(' · ')}</div>
+              {l.notes && <p className="lesson-notes">{l.notes}</p>}
             </div>
-            {l.notes && <p className="lesson-notes">{l.notes}</p>}
-            {(dob || onEdit) && (
-              <div className="mat-actions">
-                {dob && (
-                  <Link className="btn small primary" to={`/lesson/${dob.ref}`}>
-                    {dob.title}
-                  </Link>
-                )}
-                {onEdit && (
-                  <button className="btn small ghost" onClick={() => onEdit(l)}>
-                    Szerkesztés
-                  </button>
-                )}
-              </div>
-            )}
+          </>
+        );
+        const tone = `lesson-card tone-${(number + 1) % 2}`;
+        return (
+          <section key={l.id} className="lesson-group">
+            <div className="lesson-row">
+              {content ? (
+                <Link className={tone} to={`/lesson/${content.number}`} state={{ back }}>
+                  {body}
+                </Link>
+              ) : (
+                <div className={tone}>{body}</div>
+              )}
+              {onEdit && (
+                <button className="edit-tile" aria-label={`Szerkesztés: ${l.title || `${number}. óra`}`} onClick={() => onEdit(l)}>
+                  <PencilIcon />
+                </button>
+              )}
+            </div>
             {att.map((m) => (
               <MaterialCard key={m.id} m={m} onDelete={onDelete && (() => onDelete(m))} />
             ))}
@@ -116,10 +136,8 @@ export function LessonsList({ lessons, materials, onDelete, onEdit }: LessonsLis
         );
       })}
       {loose.length > 0 && (
-        <section className="lesson-box">
-          <div className="lesson-box-head">
-            <b>Egyéb órai anyagok</b>
-          </div>
+        <section className="lesson-group">
+          <h2 className="group-title">Egyéb órai anyagok</h2>
           {loose.map((m) => (
             <MaterialCard key={m.id} m={m} onDelete={onDelete && (() => onDelete(m))} />
           ))}

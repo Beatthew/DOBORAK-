@@ -4,9 +4,9 @@ import { Player, type Bar } from './engine';
 interface Playback {
   /** Id of whatever is sounding right now, or null. */
   playingId: string | null;
-  /** Eighth notes played so far in the current run (0 before the first one). */
+  /** Steps played so far in the current run (0 before the first one). */
   step: number;
-  toggle: (id: string, bars: Bar[], opts: { bpm: number; loop: boolean }) => void;
+  toggle: (id: string, bars: Bar[], opts: { bpm: number; loop: boolean; div?: number; track?: boolean }) => void;
   stop: () => void;
 }
 
@@ -31,7 +31,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
       playingId,
       step,
       stop,
-      toggle: (id, bars, opts) => {
+      toggle: (id, bars, { track, ...opts }) => {
         if (playingId === id) {
           stop();
           return;
@@ -41,7 +41,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
         void player.current
           ?.start(bars, {
             ...opts,
-            onStep: opts.loop ? undefined : (s) => setStep(s),
+            onStep: opts.loop && !track ? undefined : (s) => setStep(s),
             onEnd: stop,
           })
           .then((started) => {

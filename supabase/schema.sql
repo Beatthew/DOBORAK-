@@ -1,4 +1,4 @@
--- Beatthew – Diákjaim: adatbázis + tárhely + jogosultságok.
+-- BEATHUB: adatbázis + tárhely + jogosultságok.
 -- Futtatás: Supabase → SQL Editor → New query → ezt az egészet bemásolni → Run. Többször is futtatható.
 -- Utána futtasd a 002_elore_felvett_diakok.sql-t is (előre felvehető diákok).
 
@@ -38,7 +38,7 @@ create table if not exists public.lessons (
 
 -- ---------- anyagok: amit a tanár egy diáknak kiad ----------
 -- kind: 'material' = órai anyag (fájl / link / jegyzet), 'song' = dal a Song Practice-ből (ref = dal id),
---       'exercise' = technikai gyakorlat (ref = dobórák óra száma, vagy feltöltött fájl)
+--       'exercise' = technikai gyakorlat (ref = kész óra száma, vagy feltöltött fájl)
 create table if not exists public.materials (
   id uuid primary key default gen_random_uuid(),
   student_id uuid not null references public.profiles on delete cascade,

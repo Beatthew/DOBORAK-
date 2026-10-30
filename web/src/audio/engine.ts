@@ -1,3 +1,4 @@
+import type { Beats } from '../songs/types';
 import type { Cymbal, Drum, Exercise, Fill, Groove } from '../types';
 import crashUrl from './samples/crash.wav';
 import floortomUrl from './samples/floortom.wav';
@@ -9,10 +10,12 @@ import tom1Url from './samples/tom1.wav';
 import tom2Url from './samples/tom2.wav';
 
 export interface Bar {
-  /** Eighth notes in this bar: 8, or 2 for the closing crash + kick. */
+  /** Eighth notes in this bar: 8, or 2 for the closing crash + kick. With a score: SCORE_DIV steps per quarter. */
   steps: number;
   groove?: Groove;
   fill?: Fill;
+  /** Notated bar: the instrument tokens sounding on each step. */
+  score?: string[][];
   cymbal: Cymbal;
   /** Crash replaces the cymbal on beat one. */
   crash: boolean;
@@ -23,6 +26,8 @@ export interface Bar {
 export interface PlayOptions {
   bpm: number;
   loop: boolean;
+  /** Steps per quarter note; eighths by default. */
+  div?: number;
   /** Fires as each eighth note sounds; step counts from 1. */
   onStep?: (step: number, total: number) => void;
   onEnd?: () => void;
@@ -119,13 +124,13 @@ export function preloadSamples(): Promise<void> {
   return loading;
 }
 
-function sample(c: AudioContext, t: number, name: SampleName): boolean {
+function sample(c: AudioContext, t: number, name: SampleName, level = 1): boolean {
   const buffer = buffers[name];
   if (!buffer) return false;
   const src = c.createBufferSource();
   src.buffer = buffer;
   const gain = c.createGain();
-  gain.gain.value = sampleGain[name];
+  gain.gain.value = sampleGain[name] * level;
   src.connect(gain).connect(c.destination);
   src.start(t);
   return true;
@@ -152,7 +157,21 @@ function drum(c: AudioContext, t: number, d: Drum) {
   noise(c, t, 0.04, 2500, 'bandpass', 0.15);
 }
 
+const SCORE_SAMPLE: Record<string, SampleName> = {
+  c: 'crash', r: 'ride', h: 'hihat', o: 'hihat', t: 'tom1', u: 'tom2', s: 'snare', f: 'floortom', k: 'kick',
+};
+
+/** One notated hit: '(s)' is a ghost note, 's>' an accent. */
+function scoreHit(c: AudioContext, t: number, token: string) {
+  const name = SCORE_SAMPLE[token.replace(/[()>]/g, '')];
+  if (name) sample(c, t, name, token.startsWith('(') ? 0.35 : token.endsWith('>') ? 1.2 : 1);
+}
+
 function hit(c: AudioContext, t: number, bar: Bar, i: number) {
+  if (bar.score) {
+    bar.score[i].forEach((token) => scoreHit(c, t, token));
+    return;
+  }
   if (bar.landing) {
     if (i === 0) {
       crash(c, t);
@@ -196,7 +215,7 @@ export class Player {
     void c.resume();
     await preloadSamples();
     if (this.run !== run) return false;
-    const stepDur = 60 / opts.bpm / 2;
+    const stepDur = 60 / opts.bpm / (opts.div ?? 2);
     const total = seq.length;
     let next = c.currentTime + 0.06;
     let s = 0;
@@ -250,6 +269,23 @@ export function fillBars(fill: Fill): Bar[] {
     { steps: 8, fill, cymbal: 'hh', crash: false },
     { steps: 2, cymbal: 'hh', crash: true, landing: true },
   ];
+}
+
+/** Steps per quarter of a notated bar: fits every subdivision the notation has (1, 2, 3, 4, 6). */
+export const SCORE_DIV = 12;
+
+/** Notated bars (songs/notation.ts) as playable bars. */
+export function scoreBars(bars: Beats[]): Bar[] {
+  return bars.map((beats) => {
+    const score: string[][] = Array.from({ length: SCORE_DIV * 4 }, () => []);
+    beats.forEach((beat, q) => {
+      const slots = beat.trim().split(/\s+/);
+      slots.forEach((slot, i) => {
+        if (slot !== '-') score[q * SCORE_DIV + (i * SCORE_DIV) / slots.length].push(...slot.split('+'));
+      });
+    });
+    return { steps: SCORE_DIV * 4, score, cymbal: 'hh', crash: false };
+  });
 }
 
 /** Eighth notes one part takes up. */

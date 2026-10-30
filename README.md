@@ -1,27 +1,31 @@
-# Beatthew – Diákjaim
+# BEATHUB
 
-A dobórák app és a Song Practice összevonása, bejelentkezéssel (Supabase).
+A tanári és a diák felület egy helyen: diákok, órák, tananyag és a Song Practice dalai, bejelentkezéssel (Supabase).
 
-- **Tanár:** látja az összes regisztrált diákot, diákonként rögzíti az órákat (dátum, cím, jegyzet),
-  és kiad nekik anyagot: órai anyagot (fájl / link / jegyzet), dalt a Song Practice-ből, vagy gyakorlatot
-  (egy dobórát, vagy saját feltöltött gyakorlatot).
+- **Tanár:** a kezdőlapon **Diákjaim** vagy **Tananyag**.
+  - *Diákjaim:* diákonként rögzíti az órákat (dátum, cím, jegyzet), és kiad nekik anyagot: órai anyagot
+    (fájl / link / jegyzet), dalt a Song Practice-ből, vagy gyakorlatot (kész órát, vagy saját feltöltött gyakorlatot).
+  - *Tananyag:* bővíthető kategóriák, bennük visszahallgatható kották. Új tétel kézzel építve, vagy képről /
+    kottáról átírva (a kép forrásként a tételhez kerül, a kottakódból lesz a kotta). A dalok forrása a Song Practice.
 - **Diák:** belépve a saját anyagait látja, három fülön: **Óráim**, **Dalok**, **Gyakorlatok**.
 
 ## Mappák
 
-- `web/` – az app (React + Vite). A dobórák kódja `src/` alatt, az új oldalak: `pages/Login`, `pages/StudentHome`,
-  `pages/TeacherHome`, `pages/TeacherStudent`.
+- `web/` – az app (React + Vite). Az oldalak: `pages/`. A tananyag: `data/library.ts` (kategóriák, az eddig
+  tanított groove-ok és fillek) és `pages/Library*`. A kész órák tartalma: `data/lessons.ts`.
 - `web/src/songs/` – a dalok: a Song Practice motorja (`engine.ts`: lejátszás, lassítás, metronóm; `notation.ts`: kotta)
   és a behúzott dalok kottája (`data/`). A hangsávok: `web/public/songs/`.
   **Új dal behúzása** a Song Practice-ből (ami ott új, attól még nem kerül ide):
   `cd web` → `npm run import-song -- <dal id>` (pl. `npm run import-song -- skyfall`). Újra behúzva frissül.
 - `supabase/schema.sql` – adatbázis, tárhely, jogosultságok.
+- `assets/` – arculat, a régi dobórák QR-kódjai és drótváza; a `Real Drums Vol. 1` sample-csomag csak helyben van (nincs gitben).
 
 ## Supabase beállítása (egyszer)
 
 1. <https://supabase.com> → **New project**. Régió: *Central EU (Frankfurt)*. Az adatbázis jelszavát mentsd el.
 2. **SQL Editor** → *New query* → másold be a `supabase/schema.sql` teljes tartalmát → **Run**.
-   Utána ugyanígy sorban a `supabase/002_elore_felvett_diakok.sql`-t és a `supabase/003_dobora_az_oraban.sql`-t.
+   Utána ugyanígy sorban a `supabase/002_elore_felvett_diakok.sql`-t, a `supabase/003_dobora_az_oraban.sql`-t,
+   a `supabase/004_tananyag.sql`-t és a `supabase/005_ora_tananyagbol.sql`-t.
 3. **Authentication → Sign In / Providers → Email**: legyen bekapcsolva. A *Confirm email* opcióval döntöd el,
    hogy a diáknak meg kell-e erősítenie az email címét regisztráció után.
 4. **Project Settings → API** (vagy *Data API* / *API Keys*): kell a **Project URL** és az **anon public** kulcs.

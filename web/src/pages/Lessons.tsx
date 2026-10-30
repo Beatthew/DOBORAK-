@@ -8,14 +8,14 @@ export function Lessons() {
   const ordered = [...lessons].sort((a, b) => a.number - b.number);
   return (
     <>
-      <TopBar title={t.lessons} backTo="/" />
+      <TopBar title="Kész órák" backTo="/tananyag" backLabel="Tananyag" />
       <main className="page">
         {ordered.length === 0 ? (
           <p className="muted">{t.noLessons}</p>
         ) : (
           <div className="grid">
             {ordered.map((lesson, i) => (
-              <Link key={lesson.id} to={`/lesson/${lesson.number}`} className={`lesson-card tone-${i % 2}`}>
+              <Link key={lesson.id} to={`/lesson/${lesson.number}`} state={{ back: '/gyakorlatok' }} className={`lesson-card tone-${i % 2}`}>
                 <div className="lesson-card-num">{lesson.number}</div>
                 <div className="lesson-card-text">
                   <div className="lesson-card-title">{t.lessonN(lesson.number)}</div>

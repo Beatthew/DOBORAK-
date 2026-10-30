@@ -9,7 +9,7 @@ interface Counts {
 }
 
 const hu = {
-  appName: 'Beatthew',
+  appName: 'BEATHUB',
   lessonN: (n: number) => `${n}. óra`,
   exercises: 'Gyakorlatok',
   hh: 'Lábcin',
@@ -46,7 +46,7 @@ const hu = {
 type Dict = typeof hu;
 
 const en: Dict = {
-  appName: 'Beatthew',
+  appName: 'BEATHUB',
   lessonN: (n) => `Lesson ${n}`,
   exercises: 'Exercises',
   hh: 'Hi-hat',
@@ -86,7 +86,7 @@ const en: Dict = {
 };
 
 const dicts: Record<Lang, Dict> = { hu, en };
-const LANG_KEY = 'beatthew.lang';
+const LANG_KEY = 'beathub.lang';
 
 interface I18n {
   lang: Lang;

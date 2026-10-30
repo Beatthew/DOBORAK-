@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../auth';
 import { TopBar } from '../components/TopBar';
 import { SongEngine } from '../songs/engine';
 import { findSongData } from '../songs';
 import { fitWidth, marksOf, rowSVG, setPlayhead } from '../songs/notation';
 import type { Beats, SongData } from '../songs/types';
 
-/* Egy dal gyakorlása a Diákjaim felületén, a Song Practice motorjával.
+/* Egy dal gyakorlása a BEATHUB felületén, a Song Practice motorjával.
    Fülek: Groove-ok / Fillek (a dal építőelemei, mindegyik a dal saját részletén loopolva) és Teljes szám
    (az egész dal, vagy egy szekciója loopolva). Lent: lejátszás, tempó (hangmagasság-változás nélkül), keverő.
    Kiválasztás az URL-ben: /dal/<id>/<kulcs> — e3 (3. elem), e3v1 (variációja), all (teljes szám), s2 (2. szekció). */
@@ -73,7 +74,7 @@ export function SongPage() {
       <>
         <TopBar title="Dal" backTo="/" />
         <main className="page">
-          <p className="muted">Ez a dal nincs a Diákjaimban.</p>
+          <p className="muted">Ez a dal nincs a BEATHUBban.</p>
         </main>
       </>
     );
@@ -83,7 +84,9 @@ export function SongPage() {
 
 function SongPlayer({ song, selKey }: { song: SongData; selKey: string }) {
   const nav = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, state } = useLocation() as { pathname: string; state: { back?: string } | null };
+  const { profile } = useAuth();
+  const back = state?.back ?? (profile?.role === 'teacher' ? '/tananyag/dalok' : '/');
   const sel = useMemo(() => select(song, selKey), [song, selKey]);
   const marks = useMemo(() => marksOf(song), [song]);
   const [engine, setEngine] = useState<SongEngine | null>(null);
@@ -230,7 +233,7 @@ function SongPlayer({ song, selKey }: { song: SongData; selKey: string }) {
   }, [engine, sel, svgs, song, cur, loopBars]);
 
   const base = pathname.startsWith('/dev/') ? '/dev/dal' : '/dal';
-  const go = (key: string) => nav(`${base}/${song.id}/${key}`, { replace: true });
+  const go = (key: string) => nav(`${base}/${song.id}/${key}`, { replace: true, state });
   const setM = (k: keyof Mix, v: number) => setMix((m) => ({ ...m, [k]: v }));
   const list = tab === 'song'
     ? [{ key: 'all', label: 'Teljes szám', sub: `1–${lastBar}`, cls: '' }, ...song.sections.flatMap((s, i) => (s.tacet ? [] : [{ key: `s${i}`, label: s.name, sub: `${s.from}–${s.to}`, cls: '' }]))]
@@ -248,7 +251,7 @@ function SongPlayer({ song, selKey }: { song: SongData; selKey: string }) {
 
   return (
     <>
-      <TopBar title={song.title} backTo="/" backLabel="Vissza">
+      <TopBar title={song.title} backTo={back} backLabel="Vissza">
         {song.artist && <p className="top-sub">{song.artist}</p>}
         <nav className="tabs">
           {TABS.map(([t, label]) => (
@@ -330,7 +333,7 @@ function SongPlayer({ song, selKey }: { song: SongData; selKey: string }) {
           <Slider label="Metronóm" value={mix.metro} onChange={(v) => setM('metro', v)} />
         </section>
 
-        <Link className="btn ghost back-link" to="/">
+        <Link className="btn ghost back-link" to={back}>
           ← Vissza
         </Link>
       </main>

@@ -71,3 +71,11 @@ export const DrumIcon = () => (
     <path d="M14 3l10 9M42 3l-10 9" />
   </svg>
 );
+
+export function PencilIcon({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 20l1-5L16 4l4 4L9 19l-5 1z" />
+    </svg>
+  );
+}

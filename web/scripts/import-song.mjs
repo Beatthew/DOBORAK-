@@ -1,4 +1,4 @@
-// Dal behúzása a Song Practice-ből a Diákjaimba („húzd bele”):
+// Dal behúzása a Song Practice-ből a BEATHUBba („húzd bele”):
 //   node scripts/import-song.mjs come-together skyfall …
 // A Song Practice index.html-jéből kimásolja a dal blokkját (kotta, szekciók, elemek, tempótérkép)
 // a src/songs/<id>.ts fájlba, a két hangsávot a public/songs mappába, és frissíti a src/songs/index.ts listát.
@@ -9,7 +9,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const web = join(dirname(fileURLToPath(import.meta.url)), '..');
-const from = process.env.SONGPRACTICE_DIR || join(web, '..', '..', 'SONGPRACTICE APP', 'songpractice-netlify');
+// a Songpractice app „KÜLDÉS A BEATHUBBA” gombja ide teszi a dalokat
+const from = process.env.SONGPRACTICE_DIR || join(web, '..', '..', 'SONGPRACTICE APP', 'songpractice', 'publish');
 const html = readFileSync(join(from, 'index.html'), 'utf8');
 const songsDir = join(web, 'src', 'songs', 'data');
 const audioDir = join(web, 'public', 'songs');
@@ -48,8 +49,8 @@ const files = readdirSync(songsDir).filter((f) => f.endsWith('.ts')).sort();
 const name = (f) => 's_' + f.replace(/\.ts$/, '').replace(/\W/g, '_');
 writeFileSync(
   join(web, 'src', 'songs', 'index.ts'),
-  `// Automatikusan generált (scripts/import-song.mjs) — a Diákjaimba behúzott dalok.\nimport type { SongData } from './types';\n` +
+  `// Automatikusan generált (scripts/import-song.mjs) — a BEATHUBba behúzott dalok.\nimport type { SongData } from './types';\n` +
     files.map((f) => `import ${name(f)} from './data/${f.replace(/\.ts$/, '')}';`).join('\n') +
     `\n\nexport const SONGS: SongData[] = [${files.map(name).join(', ')}];\nexport const findSongData = (id: string | null | undefined) => SONGS.find((s) => s.id === id);\n`,
 );
-console.log(`dalok a Diákjaimban: ${files.length}`);
+console.log(`dalok a BEATHUBban: ${files.length}`);

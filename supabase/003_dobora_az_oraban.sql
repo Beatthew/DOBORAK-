@@ -1,4 +1,4 @@
--- Beatthew – Diákjaim, 3. lépés: egy órához hozzá lehet kötni a dobórák app egyik óráját.
+-- BEATHUB, 3. lépés: egy órához hozzá lehet kötni a dobórák app egyik óráját.
 -- SQL Editor → New query → ezt az egészet bemásolni → Run. Többször is futtatható.
 
 -- az óra anyaga a dobórák appból: az ottani óra száma (pl. '2'), vagy üres

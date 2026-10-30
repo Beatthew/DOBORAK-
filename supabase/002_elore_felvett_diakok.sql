@@ -1,4 +1,4 @@
--- Beatthew – Diákjaim, 2. lépés: előre felvett diákok + az első diák (Tőth Ádám) az anyagaival.
+-- BEATHUB, 2. lépés: előre felvett diákok + az első diák (Tőth Ádám) az anyagaival.
 -- A már lefuttatott schema.sql UTÁN futtasd: SQL Editor → New query → ezt az egészet bemásolni → Run.
 -- Többször is futtatható.
 --

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { MaterialCard } from '../components/MaterialCard';
 import { TopBar } from '../components/TopBar';
 import { exerciseList, songList } from '../data/catalog';
@@ -12,17 +12,16 @@ const TABS: [Tab, string][] = [
   ['songs', 'Dalok'],
   ['exercises', 'Gyakorlatok'],
 ];
-const today = () => new Date().toISOString().slice(0, 10);
 
-/** Egy diák a tanár szemével: órái, kiadott dalai és gyakorlatai + új óra rögzítése és anyag kiadása. */
+/** Egy diák a tanár szemével: órái, kiadott dalai és gyakorlatai + új óra (LessonComposer) és fájl kiadása. */
 export function TeacherStudent() {
   const { id = '' } = useParams();
   const [student, setStudent] = useState<Profile | null>(null);
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [tab, setTab] = useState<Tab>('lessons');
-  const [form, setForm] = useState<'lesson' | 'material' | null>(null);
-  const [editing, setEditing] = useState<LessonRow | null>(null);
+  const [form, setForm] = useState<'material' | null>(null);
+  const nav = useNavigate();
 
   const load = useCallback(async () => {
     if (!supabase) return;
@@ -48,19 +47,13 @@ export function TeacherStudent() {
   };
   const done = () => {
     setForm(null);
-    setEditing(null);
     void load();
-  };
-  const edit = (l: LessonRow) => {
-    setEditing(l);
-    setForm('lesson');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   const listed = materials.filter((m) => m.kind === (tab === 'songs' ? 'song' : 'exercise'));
 
   return (
     <>
-      <TopBar title={student?.full_name || 'Diák'} backTo="/" backLabel="Diákjaim">
+      <TopBar title={student?.full_name || 'Diák'} backTo="/diakok" backLabel="Diákjaim">
         <nav className="tabs">
           {TABS.map(([t, label]) => (
             <button key={t} className={t === tab ? 'on' : ''} onClick={() => setTab(t)}>
@@ -70,22 +63,8 @@ export function TeacherStudent() {
         </nav>
       </TopBar>
       <main className="page">
-        <div className="row">
-          <button
-            className="btn primary"
-            onClick={() => {
-              setEditing(null);
-              setForm(form === 'lesson' && !editing ? null : 'lesson');
-            }}
-          >
-            + Új óra
-          </button>
-          <button className="btn primary" onClick={() => setForm(form === 'material' ? null : 'material')}>
-            + Anyag kiadása
-          </button>
-        </div>
-        {form === 'lesson' && <LessonForm key={editing?.id ?? 'new'} studentId={id} lesson={editing} onDone={done} />}
-        {form === 'material' && (
+        {student && !student.user_id && <StudentEmail student={student} onSaved={() => void load()} />}
+        {form && (
           <MaterialForm
             studentId={id}
             lessons={lessons}
@@ -94,7 +73,20 @@ export function TeacherStudent() {
           />
         )}
         {tab === 'lessons' ? (
-          <LessonsList lessons={lessons} materials={materials} onDelete={(m) => void del(m)} onEdit={edit} />
+          <>
+            <LessonsList
+              lessons={lessons}
+              materials={materials}
+              onDelete={(m) => void del(m)}
+              onEdit={(l) => nav(`/diak/${id}/ora/${l.id}`)}
+              back={`/diak/${id}`}
+              ascending
+            />
+            <Link className="add-tile composer-add" to={`/diak/${id}/uj-ora`}>
+              <span className="add-plus">+</span>
+              <span className="item-tile-title">Új óra</span>
+            </Link>
+          </>
         ) : listed.length ? (
           <div className="grid">
             {listed.map((m) => (
@@ -104,72 +96,39 @@ export function TeacherStudent() {
         ) : (
           <p className="muted">Még nincs kiadva semmi.</p>
         )}
+        <button className="btn ghost big" onClick={() => setForm(form ? null : 'material')}>
+          + Fájl vagy link kiadása
+        </button>
       </main>
     </>
   );
 }
 
-/** Új óra, vagy (lesson megadásával) egy meglévő szerkesztése / törlése. Az órához köthető egy dobórák-óra is. */
-function LessonForm({ studentId, lesson, onDone }: { studentId: string; lesson: LessonRow | null; onDone: () => void }) {
-  const [date, setDate] = useState(lesson?.date ?? today());
-  const [title, setTitle] = useState(lesson?.title ?? '');
-  const [notes, setNotes] = useState(lesson?.notes ?? '');
-  const [doborak, setDoborak] = useState(lesson?.doborak ?? '');
+/** A még nem regisztrált diák email címe: ezzel a címmel regisztrálva kapcsolódik a fiókja ehhez a profilhoz. */
+function StudentEmail({ student, onSaved }: { student: Profile; onSaved: () => void }) {
+  const [email, setEmail] = useState(student.email);
   const [busy, setBusy] = useState(false);
+  const value = email.trim().toLowerCase();
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!supabase) return;
     setBusy(true);
-    const row = { date, title: title.trim(), notes: notes.trim(), doborak: doborak || null };
-    const { error } = lesson
-      ? await supabase.from('lessons').update(row).eq('id', lesson.id)
-      : await supabase.from('lessons').insert({ ...row, student_id: studentId });
+    const { error } = await supabase.from('profiles').update({ email: value }).eq('id', student.id);
     setBusy(false);
-    if (error) return alert(error.message);
-    onDone();
-  };
-
-  const remove = async () => {
-    if (!supabase || !lesson || !confirm('Törlöd ezt az órát? (A hozzá csatolt anyagok megmaradnak, csak az órához kötés szűnik meg.)')) return;
-    const { error } = await supabase.from('lessons').delete().eq('id', lesson.id);
-    if (error) return alert(error.message);
-    onDone();
+    if (error) return alert(/duplicate|unique/i.test(error.message) ? 'Ezzel az email címmel már van diák.' : error.message);
+    onSaved();
   };
 
   return (
     <form className="form card" onSubmit={submit}>
       <label>
-        Dátum
-        <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
+        Email (ezzel fog regisztrálni)
+        <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
       </label>
-      <label>
-        Cím
-        <input placeholder="pl. Shuffle groove, első fillek" value={title} onChange={(e) => setTitle(e.target.value)} />
-      </label>
-      <label>
-        Dobóra ehhez az órához
-        <select value={doborak} onChange={(e) => setDoborak(e.target.value)}>
-          <option value="">– nincs –</option>
-          {exerciseList.map((x) => (
-            <option key={x.ref} value={x.ref}>
-              {x.title}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Jegyzet
-        <textarea rows={3} placeholder="Mit vettünk, mire figyeljen…" value={notes} onChange={(e) => setNotes(e.target.value)} />
-      </label>
-      <button className="btn primary" disabled={busy}>
-        {busy ? 'Mentés…' : lesson ? 'Változások mentése' : 'Óra mentése'}
+      <button className="btn primary" disabled={busy || value === student.email}>
+        {busy ? 'Mentés…' : 'Email mentése'}
       </button>
-      {lesson && (
-        <button type="button" className="btn ghost" onClick={() => void remove()}>
-          Óra törlése
-        </button>
-      )}
     </form>
   );
 }
@@ -258,7 +217,7 @@ function MaterialForm({ studentId, lessons, initialKind, onDone }: MaterialFormP
       )}
       {kind === 'exercise' && (
         <label>
-          Dobóra (vagy saját gyakorlat fájlként lent)
+          Kész óra (vagy saját gyakorlat fájlként lent)
           <select value={ref} onChange={(e) => setRef(e.target.value)}>
             <option value="">– nincs, saját fájl / jegyzet –</option>
             {exerciseList.map((x) => (

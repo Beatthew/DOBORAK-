@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import { preloadSamples } from '../audio/engine';
 import { usePlayback } from '../audio/playback';
 import { ExerciseCard } from '../components/ExerciseCard';
@@ -15,6 +15,8 @@ export function LessonPage() {
   const { number } = useParams();
   const { t } = useI18n();
   const { stop } = usePlayback();
+  const { state } = useLocation() as { state: { back?: string } | null };
+  const back = state?.back ?? '/';
   const lesson = lessons.find((l) => String(l.number) === number);
 
   useEffect(() => stop, [stop]);
@@ -26,7 +28,7 @@ export function LessonPage() {
   if (!lesson) {
     return (
       <>
-        <TopBar title={t.lessons} backTo="/" backLabel={t.lessons} />
+        <TopBar title={t.lessons} backTo={back} backLabel={t.back} />
         <main className="page">
           <p className="muted">{t.lessonMissing}</p>
         </main>
@@ -39,7 +41,7 @@ export function LessonPage() {
 
   return (
     <>
-      <TopBar title={t.lessonN(lesson.number)} backTo="/" backLabel={t.lessons}>
+      <TopBar title={t.lessonN(lesson.number)} backTo={back} backLabel={t.back}>
         <nav className="chips" aria-label={t.lessonN(lesson.number)}>
           {shownGrooves.map((g) => (
             <a

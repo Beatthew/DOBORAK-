@@ -1,26 +1,26 @@
 import type { Beats, SongData } from './types';
 
-/* Dobkotta SVG-ben, a Song Practice jelölésével (a Diákjaim színeivel, sötét alapra):
+/* Dobkotta SVG-ben, a Song Practice jelölésével (a BEATHUB színeivel; a színek CSS-változók, így sötét és világos alapon is működik):
    egy ütem = 4 negyed; egy negyeden belül a szóközzel elválasztott tagok száma adja a felosztást
    (1 = negyed, 2 = 8-ad, 3 = triola, 4 = 16-od, 6 = szextola). '-' = szünet, '+' = egyszerre ütött hangszerek.
-   h zárt hihat, o nyitott hihat, r ride, c crash, t tam, s pergő, f álló tam, k lábdob;
+   h zárt hihat, o nyitott hihat, r ride, c crash, t kistam, u középtam, s pergő, f álló tam, k lábdob;
    '(s)' ghost note, 's>' hangsúly. A beats tömb opcionális .hands mezője a kézrend (R / L). */
 
 const TOP = 46, GAP = 11, HS = GAP / 2, STEM_TOP = 8;
 export const PADL = 24, PADR = 14;
-const POS: Record<string, number> = { c: -3, h: -1, o: -1, r: 0, t: 1, s: 3, f: 5, k: 7 };   // félközök a felső vonaltól
+const POS: Record<string, number> = { c: -3, h: -1, o: -1, r: 0, t: 1, u: 2, s: 3, f: 5, k: 7 };   // félközök a felső vonaltól
 const yPos = (p: number) => TOP + p * HS;
 
 const C = {
-  ink: '#fcf7ff',
-  staff: 'rgba(252,247,255,.32)',
-  barline: 'rgba(252,247,255,.6)',
-  num: 'rgba(252,247,255,.5)',
-  fill: '#f0dcca',
-  fillBg: 'rgba(240,220,202,.12)',
-  ride: '#9fd3c7',
-  hl: 'rgba(112,248,186,.14)',
-  head: '#70f8ba',
+  ink: 'var(--n-ink, #fcf7ff)',
+  staff: 'var(--n-staff, rgba(252,247,255,.32))',
+  barline: 'var(--n-bar, rgba(252,247,255,.6))',
+  num: 'var(--n-num, rgba(252,247,255,.5))',
+  fill: 'var(--n-fill, #f0dcca)',
+  fillBg: 'var(--n-fillbg, rgba(240,220,202,.12))',
+  ride: 'var(--n-ride, #9fd3c7)',
+  hl: 'var(--n-hl, rgba(112,248,186,.14))',
+  head: 'var(--n-head, #70f8ba)',
 };
 
 export interface Marks {
@@ -106,7 +106,7 @@ export function drawBar(beats: Beats | null | undefined, x0: number, w: number, 
         else if (!(pv && pv.lvl >= 2)) g += `<rect x="${nx ? n.sx : n.sx - 10}" y="${STEM_TOP + 8}" width="10" height="5" fill="${C.ink}"/>`;
       });
       if (m === 3 || m === 6)
-        g += `<text x="${(a.sx + z.sx) / 2}" y="${STEM_TOP - 6}" text-anchor="middle" font-size="13" font-style="italic" font-weight="700" fill="rgba(252,247,255,.7)">${m}</text>`;
+        g += `<text x="${(a.sx + z.sx) / 2}" y="${STEM_TOP - 6}" text-anchor="middle" font-size="13" font-style="italic" font-weight="700" fill="${C.barline}">${m}</text>`;
     }
   });
   return g;

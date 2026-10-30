@@ -1,4 +1,6 @@
 node_modules/
+assets/Real Drums Vol. 1/
 web/dist/
 web/.env.local
 web/.env.db
+supabase/006_onboarding_uj_diakok.sql

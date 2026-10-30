@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { TopBar } from '../components/TopBar';
+import { Brand, TopBar } from '../components/TopBar';
 import { supabase } from '../lib/supabase';
 
 /** Belépés / regisztráció email + jelszóval. Az új fiók diákként jön létre; a tanári szerepet a tanár kapja meg. */
@@ -14,7 +14,7 @@ export function Login() {
   if (!supabase) {
     return (
       <>
-        <TopBar title="Belépés" />
+        <TopBar title={<Brand />} hideName />
         <main className="page">
           <p className="note-box">
             Az app még nincs összekötve a Supabase-zel. Töltsd ki a <b>web/.env.local</b> fájlt
@@ -43,7 +43,9 @@ export function Login() {
 
   return (
     <>
-      <TopBar title={mode === 'in' ? 'Belépés' : 'Regisztráció'} />
+      <TopBar title={<Brand />} hideName>
+        <p className="top-sub">{mode === 'in' ? 'Belépés' : 'Regisztráció'}</p>
+      </TopBar>
       <main className="page">
         <form className="form" onSubmit={submit}>
           {mode === 'up' && (

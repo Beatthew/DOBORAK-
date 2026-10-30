@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { grooveBars } from '../audio/engine';
 import { usePlayback } from '../audio/playback';
 import { useI18n } from '../i18n';
+import { grooveBar, toBeats } from '../data/library';
 import { spotifyHref } from '../lib/spotify';
 import type { Groove, Lesson } from '../types';
-import { GrooveGrid } from './GrooveGrid';
 import { ArrowOutIcon, ChevronIcon, PlayIcon, StopIcon } from './Icons';
+import { Score } from './Score';
 
 interface Props {
   groove: Groove;
@@ -40,7 +41,7 @@ export function GrooveBlock({ groove, lesson, index }: Props) {
           {playing ? <StopIcon /> : <PlayIcon />}
         </button>
       </div>
-      <GrooveGrid groove={groove} />
+      <Score bars={[toBeats(grooveBar(groove))]} />
       {songs.length > 0 && (
         <div className="songs">
           <button
