@@ -29,7 +29,7 @@ export function TeacherStudent() {
     if (!supabase) return;
     const [p, l, m] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', id).maybeSingle(),
-      supabase.from('lessons').select('*').eq('student_id', id).order('date', { ascending: false }),
+      supabase.from('lessons').select('*').eq('student_id', id).order('date', { ascending: false }).order('created_at', { ascending: false }),
       supabase.from('materials').select('*').eq('student_id', id).order('created_at', { ascending: false }),
     ]);
     setStudent((p.data as Profile) ?? null);

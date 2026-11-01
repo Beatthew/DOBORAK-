@@ -27,7 +27,7 @@ export function StudentHome() {
   useEffect(() => {
     if (!supabase || !profile) return;
     void Promise.all([
-      supabase.from('lessons').select('*').eq('student_id', profile.id).order('date', { ascending: false }),
+      supabase.from('lessons').select('*').eq('student_id', profile.id).order('date', { ascending: false }).order('created_at', { ascending: false }),
       supabase.from('materials').select('*').eq('student_id', profile.id).order('created_at', { ascending: false }),
     ]).then(([l, m]) => {
       setLessons((l.data as LessonRow[]) ?? []);

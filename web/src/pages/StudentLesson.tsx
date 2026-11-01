@@ -25,7 +25,7 @@ export function StudentLesson() {
       const studentId = (data as { student_id: string } | null)?.student_id;
       if (!studentId) return setLessons([]);
       const [l, m] = await Promise.all([
-        db.from('lessons').select('*').eq('student_id', studentId).order('date', { ascending: false }),
+        db.from('lessons').select('*').eq('student_id', studentId).order('date', { ascending: false }).order('created_at', { ascending: false }),
         db.from('materials').select('*').eq('lesson_id', lessonId).order('created_at'),
       ]);
       setLessons((l.data as LessonRow[]) ?? []);
