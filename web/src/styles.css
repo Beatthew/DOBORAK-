@@ -754,6 +754,227 @@ button.lesson-card {
   border-color: var(--mint);
 }
 
+.seg.two {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.seg.four {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* A diák tandíja: csomag állása, JÖTT MA gomb, befizetések */
+.student-card {
+  position: relative;
+}
+
+.pay-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--paper);
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--mint);
+}
+
+.tuition {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: var(--line) solid var(--track);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.tuition.is-due {
+  border-color: var(--ink);
+}
+
+.tuition-title {
+  margin: 0;
+  font-stretch: 78%;
+  font-weight: 900;
+  font-size: 24px;
+}
+
+.tuition-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tuition-plan {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tuition-edit {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -8px -8px -8px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.tuition-progress {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tuition-count {
+  flex: none;
+  font-stretch: 78%;
+  font-weight: 900;
+  font-size: 56px;
+  line-height: 1;
+}
+
+.tuition-count span {
+  font-size: 28px;
+}
+
+.tuition-bar {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+}
+
+.tuition-bar span {
+  flex: 1;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--track);
+  transition: background-color 0.25s ease;
+}
+
+.tuition-bar span.on {
+  background: var(--mint);
+}
+
+.is-due .tuition-bar span.on {
+  background: var(--ink);
+}
+
+.tuition-status {
+  margin: -6px 0 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.tuition-came {
+  min-height: 84px;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: var(--mint);
+  color: var(--ink);
+  font-stretch: 78%;
+  font-weight: 900;
+  font-size: 36px;
+}
+
+.tuition-came:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.tuition-came.done {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 64px;
+  padding: 0 14px;
+  border: var(--line) solid var(--track);
+  background: transparent;
+  font-size: 24px;
+}
+
+.tuition-came.done .btn {
+  flex: none;
+  font-stretch: 100%;
+}
+
+.tuition-pay {
+  gap: 8px;
+}
+
+.tuition-payform {
+  padding: 14px;
+  border-radius: 6px;
+  background: var(--paper);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.tuition-last {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.tuition-history summary {
+  min-height: 32px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tuition-history h3 {
+  margin: 14px 0 4px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.tuition-history ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tuition-history li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: var(--line) solid var(--track);
+  font-size: 14px;
+}
+
+.tuition-history li button {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.tuition-otherday {
+  margin-top: 16px;
+}
+
 .note-box,
 .error-box {
   margin: 0;

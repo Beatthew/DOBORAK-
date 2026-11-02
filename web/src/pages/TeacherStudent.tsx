@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { MaterialCard } from '../components/MaterialCard';
 import { TopBar } from '../components/TopBar';
+import { TuitionTracker } from '../components/TuitionTracker';
 import { exerciseList, songList } from '../data/catalog';
 import { useI18n } from '../i18n';
 import { KIND_LABEL, supabase, type Kind, type LessonRow, type Material, type Profile } from '../lib/supabase';
@@ -66,6 +67,7 @@ export function TeacherStudent() {
         </nav>
       </TopBar>
       <main className="page">
+        <TuitionTracker studentId={id} />
         {student && !student.user_id && <StudentEmail student={student} onSaved={() => void load()} />}
         {form && (
           <MaterialForm

@@ -5,6 +5,7 @@ A tanári és a diák felület egy helyen: diákok, órák, tananyag és a Song 
 - **Tanár:** a kezdőlapon **Diákjaim** vagy **Tananyag**.
   - *Diákjaim:* diákonként rögzíti az órákat (dátum, cím, jegyzet), és kiad nekik anyagot: órai anyagot
     (fájl / link / jegyzet), dalt a Song Practice-ből, vagy gyakorlatot (kész órát, vagy saját feltöltött gyakorlatot).
+    Itt követi a tandíjat is: csomag és óradíj, befizetések, „JÖTT MA” gomb; a pénz ikon jelzi, ha fizetés esedékes.
   - *Tananyag:* bővíthető kategóriák, bennük visszahallgatható kották. Új tétel kézzel építve, vagy képről /
     kottáról átírva (a kép forrásként a tételhez kerül, a kottakódból lesz a kotta). A dalok forrása a Song Practice.
 - **Diák:** belépve a saját anyagait látja, három fülön: **Óráim**, **Dalok**, **Gyakorlatok**.
@@ -25,7 +26,7 @@ A tanári és a diák felület egy helyen: diákok, órák, tananyag és a Song 
 1. <https://supabase.com> → **New project**. Régió: *Central EU (Frankfurt)*. Az adatbázis jelszavát mentsd el.
 2. **SQL Editor** → *New query* → másold be a `supabase/schema.sql` teljes tartalmát → **Run**.
    Utána ugyanígy sorban a `supabase/002_elore_felvett_diakok.sql`-t, a `supabase/003_dobora_az_oraban.sql`-t,
-   a `supabase/004_tananyag.sql`-t, a `supabase/005_ora_tananyagbol.sql`-t, a `supabase/007_anyag_sorrend.sql`-t a `supabase/008_regisztracio_nev_alapjan.sql`-t és a `supabase/009_lesson_one_kezdocsomag.sql`-t.
+   a `supabase/004_tananyag.sql`-t, a `supabase/005_ora_tananyagbol.sql`-t, a `supabase/007_anyag_sorrend.sql`-t a `supabase/008_regisztracio_nev_alapjan.sql`-t, a `supabase/009_lesson_one_kezdocsomag.sql`-t és a `supabase/010_tandij.sql`-t.
 3. **Authentication → Sign In / Providers → Email**: legyen bekapcsolva. A *Confirm email* opcióval döntöd el,
    hogy a diáknak meg kell-e erősítenie az email címét regisztráció után.
 4. **Project Settings → API** (vagy *Data API* / *API Keys*): kell a **Project URL** és az **anon public** kulcs.

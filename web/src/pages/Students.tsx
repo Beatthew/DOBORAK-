@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { MoneyIcon } from '../components/Icons';
 import { TopBar } from '../components/TopBar';
 import { useI18n } from '../i18n';
+import { tuition, type Attendance, type Billing, type Payment, type Tuition } from '../lib/billing';
 import { supabase, type Profile } from '../lib/supabase';
 
 interface Row extends Profile {
   lessons: number;
   last: string | null;
+  /** Null, amíg nincs beállítva a tandíja. */
+  tuition: (Tuition & { pack: boolean }) | null;
 }
 
 /** Az összes regisztrált diák, kereshetően, az órák számával és az utolsó óra dátumával. */
@@ -18,15 +22,32 @@ export function Students() {
 
   const load = useCallback(async () => {
     if (!supabase) return;
-    const [p, l] = await Promise.all([
+    const [p, l, b, pay, a] = await Promise.all([
       supabase.from('profiles').select('*').eq('role', 'student').order('full_name'),
       supabase.from('lessons').select('student_id, date'),
+      supabase.from('student_billing').select('*'),
+      supabase.from('payments').select('*'),
+      supabase.from('attendance').select('student_id, date'),
     ]);
     const ls = (l.data as { student_id: string; date: string }[]) ?? [];
+    const billing = (b.data as Billing[]) ?? [];
+    const payments = (pay.data as Payment[]) ?? [];
+    const visits = (a.data as Attendance[]) ?? [];
     setRows(
       ((p.data as Profile[]) ?? []).map((s) => {
         const mine = ls.filter((x) => x.student_id === s.id).map((x) => x.date).sort();
-        return { ...s, lessons: mine.length, last: mine[mine.length - 1] ?? null };
+        const bill = billing.find((x) => x.student_id === s.id);
+        return {
+          ...s,
+          lessons: mine.length,
+          last: mine[mine.length - 1] ?? null,
+          tuition: bill
+            ? {
+                ...tuition(bill.plan, payments.filter((x) => x.student_id === s.id), visits.filter((x) => x.student_id === s.id).length),
+                pack: bill.plan === 'pack4',
+              }
+            : null,
+        };
       }),
     );
   }, []);
@@ -68,7 +89,12 @@ export function Students() {
         ) : (
           <div className="grid">
             {shown.map((s, i) => (
-              <Link key={s.id} to={`/diak/${s.id}`} className={`lesson-card tone-${i % 2}`}>
+              <Link key={s.id} to={`/diak/${s.id}`} className={`lesson-card student-card tone-${i % 2}`}>
+                {s.tuition?.due && (
+                  <span className="pay-badge" role="img" title={pick('Fizetés esedékes', 'Payment due')} aria-label={pick('Fizetés esedékes', 'Payment due')}>
+                    <MoneyIcon />
+                  </span>
+                )}
                 <div className="lesson-card-num">{initials(s.full_name)}</div>
                 <div className="lesson-card-text">
                   <div className="lesson-card-title">{s.full_name || pick('Névtelen diák', 'Unnamed student')}</div>
@@ -77,6 +103,7 @@ export function Students() {
                       ? pick(`${s.lessons} óra · utoljára ${new Date(s.last).toLocaleDateString(locale)}`, `${s.lessons} ${s.lessons === 1 ? 'lesson' : 'lessons'} · last ${new Date(s.last).toLocaleDateString(locale)}`)
                       : pick('még nincs óra', 'no lessons yet')}
                     {!s.user_id && (s.email ? pick(' · még nem regisztrált', ' · not signed up yet') : pick(' · nincs email', ' · no email'))}
+                    {s.tuition?.pack && ` · ${pick('csomag', 'pack')} ${s.tuition.done}/${s.tuition.size}`}
                   </div>
                 </div>
               </Link>
