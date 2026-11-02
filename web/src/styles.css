@@ -1475,6 +1475,13 @@ button.lesson-card {
   font-size: 16px;
 }
 
+/* Négy fül egy telefonszélességű sorban: a hosszabb felirat több helyet kap */
+.tabs.four button {
+  flex: auto;
+  padding: 0 4px;
+  font-size: 14px;
+}
+
 .search {
   height: 56px;
   font-size: 17px;

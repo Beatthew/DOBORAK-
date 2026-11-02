@@ -8,14 +8,15 @@ import { useI18n } from '../i18n';
 import { KIND_LABEL, supabase, type Kind, type LessonRow, type Material, type Profile } from '../lib/supabase';
 import { LessonsList } from './StudentHome';
 
-type Tab = 'lessons' | 'songs' | 'exercises';
+type Tab = 'lessons' | 'songs' | 'exercises' | 'finance';
 const TABS: [Tab, string, string][] = [
   ['lessons', 'Órák', 'Lessons'],
   ['songs', 'Dalok', 'Songs'],
   ['exercises', 'Gyakorlatok', 'Exercises'],
+  ['finance', 'Pénzügyek', 'Finances'],
 ];
 
-/** Egy diák a tanár szemével: órái, kiadott dalai és gyakorlatai + új óra (LessonComposer) és fájl kiadása. */
+/** Egy diák a tanár szemével: órái, kiadott dalai és gyakorlatai + új óra (LessonComposer) és fájl kiadása, külön fülön a tandíja. */
 export function TeacherStudent() {
   const { pick, text } = useI18n();
   const { id = '' } = useParams();
@@ -58,7 +59,7 @@ export function TeacherStudent() {
   return (
     <>
       <TopBar title={student?.full_name || pick('Diák', 'Student')} backTo="/diakok" backLabel={pick('Diákjaim', 'My students')}>
-        <nav className="tabs">
+        <nav className="tabs four">
           {TABS.map(([t, huLabel, enLabel]) => (
             <button key={t} className={t === tab ? 'on' : ''} onClick={() => setTab(t)}>
               {pick(huLabel, enLabel)}
@@ -67,43 +68,48 @@ export function TeacherStudent() {
         </nav>
       </TopBar>
       <main className="page">
-        <TuitionTracker studentId={id} />
-        {student && !student.user_id && <StudentEmail student={student} onSaved={() => void load()} />}
-        {form && (
-          <MaterialForm
-            studentId={id}
-            lessons={lessons}
-            initialKind={tab === 'songs' ? 'song' : tab === 'exercises' ? 'exercise' : 'material'}
-            onDone={done}
-          />
-        )}
-        {tab === 'lessons' ? (
-          <>
-            <LessonsList
-              lessons={lessons}
-              materials={materials}
-              onDelete={(m) => void del(m)}
-              onEdit={(l) => nav(`/diak/${id}/ora/${l.id}`)}
-              back={`/diak/${id}`}
-              ascending
-            />
-            <Link className="add-tile composer-add" to={`/diak/${id}/uj-ora`}>
-              <span className="add-plus">+</span>
-              <span className="item-tile-title">{pick('Új óra', 'New lesson')}</span>
-            </Link>
-          </>
-        ) : listed.length ? (
-          <div className="grid">
-            {listed.map((m) => (
-              <MaterialCard key={m.id} m={m} onDelete={() => void del(m)} />
-            ))}
-          </div>
+        {tab === 'finance' ? (
+          <TuitionTracker studentId={id} />
         ) : (
-          <p className="muted">{pick('Még nincs kiadva semmi.', 'Nothing assigned yet.')}</p>
+          <>
+            {student && !student.user_id && <StudentEmail student={student} onSaved={() => void load()} />}
+            {form && (
+              <MaterialForm
+                studentId={id}
+                lessons={lessons}
+                initialKind={tab === 'songs' ? 'song' : tab === 'exercises' ? 'exercise' : 'material'}
+                onDone={done}
+              />
+            )}
+            {tab === 'lessons' ? (
+              <>
+                <LessonsList
+                  lessons={lessons}
+                  materials={materials}
+                  onDelete={(m) => void del(m)}
+                  onEdit={(l) => nav(`/diak/${id}/ora/${l.id}`)}
+                  back={`/diak/${id}`}
+                  ascending
+                />
+                <Link className="add-tile composer-add" to={`/diak/${id}/uj-ora`}>
+                  <span className="add-plus">+</span>
+                  <span className="item-tile-title">{pick('Új óra', 'New lesson')}</span>
+                </Link>
+              </>
+            ) : listed.length ? (
+              <div className="grid">
+                {listed.map((m) => (
+                  <MaterialCard key={m.id} m={m} onDelete={() => void del(m)} />
+                ))}
+              </div>
+            ) : (
+              <p className="muted">{pick('Még nincs kiadva semmi.', 'Nothing assigned yet.')}</p>
+            )}
+            <button className="btn ghost big" onClick={() => setForm(form ? null : 'material')}>
+              {pick('+ Fájl vagy link kiadása', '+ Assign a file or link')}
+            </button>
+          </>
         )}
-        <button className="btn ghost big" onClick={() => setForm(form ? null : 'material')}>
-          {pick('+ Fájl vagy link kiadása', '+ Assign a file or link')}
-        </button>
       </main>
     </>
   );
