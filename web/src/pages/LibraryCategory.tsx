@@ -3,11 +3,10 @@ import { Link, useParams } from 'react-router-dom';
 import { KitArt } from '../components/GearQuiz';
 import { Score } from '../components/Score';
 import { TopBar } from '../components/TopBar';
-import { songPath } from '../data/catalog';
 import { GEAR_REF } from '../data/gear';
 import { subdivisionOf, SUBDIVISIONS, toBeats, useLibrary, type Subdivision } from '../data/library';
 import { useI18n } from '../i18n';
-import { SONGS } from '../songs';
+import { SongsHub } from './SongsHub';
 
 /** Egy kategória tételei, kottával, a legkisebb érték szerinti szűrővel. */
 export function LibraryCategory() {
@@ -33,33 +32,7 @@ export function LibraryCategory() {
     );
   }
 
-  if (cat === 'dalok') {
-    return (
-      <>
-        <TopBar title={text(category.name)} backTo="/tananyag" backLabel={library} />
-        <main className="page">
-          <div className="grid">
-            {SONGS.map((s, i) => (
-              <Link key={s.id} to={songPath(s.id)} className={`lesson-card tone-${i % 2}`}>
-                <div className="lesson-card-text">
-                  <div className="lesson-card-title">{s.title}</div>
-                  <div className="lesson-card-sub">
-                    {[s.artist, `${s.bpm} BPM`, `${s.elements.filter((e) => e.type === 'groove').length} groove`, `${s.elements.filter((e) => e.type === 'fill').length} fill`]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-          <p className="note-box">
-            {pick('A dalok forrása a Songpractice: ott készül el a kotta, a', 'Songs come from Songpractice: the score is made there; after the')} <b>Küldés a BEATHUBba</b>{' '}
-            {pick('gomb után pedig a', 'button, in the')} <b>web</b> {pick('mappában:', 'folder run:')} <b>npm run import-song -- &lt;dal id&gt;</b>
-          </p>
-        </main>
-      </>
-    );
-  }
+  if (cat === 'dalok') return <SongsHub />;
 
   return (
     <>

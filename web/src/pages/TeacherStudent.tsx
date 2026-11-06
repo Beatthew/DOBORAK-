@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { MaterialCard } from '../components/MaterialCard';
 import { TopBar } from '../components/TopBar';
 import { TuitionTracker } from '../components/TuitionTracker';
-import { exerciseList, songList } from '../data/catalog';
+import { exerciseList } from '../data/catalog';
+import { playable, useSongs } from '../songs/store';
 import { useI18n } from '../i18n';
 import { KIND_LABEL, supabase, type Kind, type LessonRow, type Material, type Profile } from '../lib/supabase';
 import { LessonsList } from './StudentHome';
@@ -153,6 +154,7 @@ interface MaterialFormProps {
 }
 
 function MaterialForm({ studentId, lessons, initialKind, onDone }: MaterialFormProps) {
+  const songList = playable(useSongs());
   const { pick, text, locale } = useI18n();
   const [kind, setKind] = useState<Kind>(initialKind);
   const [title, setTitle] = useState('');

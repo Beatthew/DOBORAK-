@@ -85,7 +85,8 @@ export class SongEngine {
     const e = new SongEngine(song);
     const c = e.ctx;
     const get = (f: string) =>
-      fetch(new URL(`songs/${f}`, document.baseURI)).then((r) => {
+      // teljes link (a tárhely aláírt linkje), vagy a public/songs mappán belüli út (a kivágott részletek)
+      fetch(/^https?:/.test(f) ? f : new URL(`songs/${f}`, document.baseURI)).then((r) => {
         if (!r.ok) throw new Error(`${f} (${r.status})`);
         return r.arrayBuffer();
       }).then((b) => c.decodeAudioData(b));

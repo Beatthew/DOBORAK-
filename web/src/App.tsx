@@ -11,6 +11,7 @@ import { LibraryCategory } from './pages/LibraryCategory';
 import { LibraryEdit } from './pages/LibraryEdit';
 import { LibraryItem } from './pages/LibraryItem';
 import { Login } from './pages/Login';
+import { SongEditor } from './pages/SongEditor';
 import { SongPage } from './pages/SongPage';
 import { StudentHome } from './pages/StudentHome';
 import { StrokesPage } from './pages/StrokesPage';
@@ -77,6 +78,7 @@ export function App() {
                 <Route path="/diakok" element={<Gate teacher><Students /></Gate>} />
                 <Route path="/tananyag" element={<Gate teacher><Library /></Gate>} />
                 <Route path="/tananyag/:cat" element={<Gate teacher><LibraryCategory /></Gate>} />
+                <Route path="/tananyag/dalok/:id/szerkesztes" element={<Gate teacher><SongEditor /></Gate>} />
                 <Route path="/tananyag/:cat/uj" element={<Gate teacher><LibraryEdit /></Gate>} />
                 <Route path="/tananyag/:cat/:item" element={<Gate teacher><LibraryItem /></Gate>} />
                 <Route path="/tananyag/:cat/:item/szerkesztes" element={<Gate teacher><LibraryEdit /></Gate>} />

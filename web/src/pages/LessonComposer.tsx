@@ -4,11 +4,11 @@ import { ClipPlayer } from '../components/ClipPlayer';
 import { Score, ScorePlayer } from '../components/Score';
 import { Sortable } from '../components/Sortable';
 import { TopBar } from '../components/TopBar';
-import { exerciseList, findExercise, findSong, songPath } from '../data/catalog';
+import { exerciseList, findExercise, songPath } from '../data/catalog';
 import { subdivisionOf, SUBDIVISIONS, toBeats, useLibrary, type ScoreBar, type Subdivision } from '../data/library';
 import { useI18n } from '../i18n';
 import { inLessonOrder, KIND_LABEL, supabase, type LessonRow, type Material, type Profile } from '../lib/supabase';
-import { SONGS } from '../songs';
+import { findSong, playable, useSongs, type SongRow } from '../songs/store';
 import { findClip } from '../songs/clips';
 
 const READY_LESSONS = 'kesz-orak';
@@ -42,8 +42,8 @@ interface Draft {
 
 const emptyDraft = (): Draft => ({ date: today(), title: '', notes: '', entries: [] });
 
-function fromMaterial(m: Material): Entry {
-  const song = m.kind === 'song' ? findSong(m.ref) : undefined;
+function fromMaterial(m: Material, songs: SongRow[] | null): Entry {
+  const song = m.kind === 'song' ? findSong(songs, m.ref) : undefined;
   const ex = m.kind === 'exercise' ? findExercise(m.ref) : undefined;
   return {
     key: m.kind === 'library' || song || ex ? `${m.kind}:${m.ref}` : `material:${m.id}`,
@@ -64,6 +64,7 @@ function fromMaterial(m: Material): Entry {
  *  A böngészés az URL-ben van (?t=...), így a telefon vissza gombja is lépésenként visz vissza. */
 export function LessonComposer() {
   const { t, pick, text } = useI18n();
+  const songRows = useSongs();
   const { id = '', lessonId } = useParams();
   const nav = useNavigate();
   const [params] = useSearchParams();
@@ -103,7 +104,7 @@ export function LessonComposer() {
       setNumber(current ? all.indexOf(current) + 1 : null);
       if (!current) return;
       const dob = findExercise(current.doborak);
-      const entries = inLessonOrder((m?.data as Material[]) ?? []).map(fromMaterial);
+      const entries = inLessonOrder((m?.data as Material[]) ?? []).map((x) => fromMaterial(x, songRows));
       if (dob) entries.unshift({ key: `exercise:${dob.ref}`, kind: 'exercise', ref: dob.ref, title: dob.title, sub: '', doborak: true });
       setSaved(entries);
       setDraft({ date: current.date, title: current.title, notes: current.notes, entries });
@@ -352,6 +353,7 @@ interface BrowserProps {
 function Browser({ cat, name, heading, base, picked, onToggle, onOpen }: BrowserProps) {
   const { t, pick, text } = useI18n();
   const { categories, items } = useLibrary();
+  const songs = playable(useSongs());
   const [filter, setFilter] = useState<Subdivision | null>(null);
   const isPicked = (key: string) => picked.some((e) => e.key === key);
   const count = picked.length;
@@ -370,7 +372,7 @@ function Browser({ cat, name, heading, base, picked, onToggle, onOpen }: Browser
   if (cat === 'kategoriak') {
     const all = [...categories, { id: READY_LESSONS, name: 'Kész órák' }];
     const size = (id: string) =>
-      id === 'dalok' ? SONGS.length : id === READY_LESSONS ? exerciseList.length : items.filter((i) => i.category === id).length;
+      id === 'dalok' ? songs.length : id === READY_LESSONS ? exerciseList.length : items.filter((i) => i.category === id).length;
     return (
       <>
         <TopBar title={pick('Tananyag', 'Library')} backTo={base} backLabel={heading} />
@@ -393,7 +395,7 @@ function Browser({ cat, name, heading, base, picked, onToggle, onOpen }: Browser
   const shown = filter ? library.filter((i) => subdivisionOf(i.bars) === filter) : library;
   const entries: (Entry & { preview?: ScoreBar })[] =
     cat === 'dalok'
-      ? SONGS.map((s) => ({ key: `song:${s.id}`, kind: 'song', ref: s.id, title: s.title, sub: s.artist }))
+      ? songs.map((s) => ({ key: `song:${s.id}`, kind: 'song', ref: s.id, title: s.title, sub: s.artist }))
       : cat === READY_LESSONS
         ? exerciseList.map((x) => ({ key: `exercise:${x.ref}`, kind: 'exercise', ref: x.ref, title: x.title, sub: `${x.bpm} BPM` }))
         : shown.map((i) => ({

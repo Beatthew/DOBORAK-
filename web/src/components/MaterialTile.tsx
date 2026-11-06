@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { findExercise, findSong, songPath } from '../data/catalog';
+import { findExercise, songPath } from '../data/catalog';
+import { findSong, useSongs } from '../songs/store';
 import { GEAR_PATH, GEAR_REF } from '../data/gear';
 import { STROKES_PATH, STROKES_REF } from '../data/strokes';
 import { useI18n } from '../i18n';
@@ -19,7 +20,8 @@ interface Props {
  *  Ami többet tud (kotta lejátszóval, fájl és link együtt), az marad MaterialCard. */
 export function MaterialTile({ m, tone, back }: Props) {
   const { pick, text } = useI18n();
-  const song = m.kind === 'song' ? findSong(m.ref) : undefined;
+  const songs = useSongs();
+  const song = m.kind === 'song' ? findSong(songs, m.ref) : undefined;
   const ex = m.kind === 'exercise' ? findExercise(m.ref) : undefined;
   const strokes = m.ref === STROKES_REF;
   const targets = [song || ex, m.file_path, m.link_url].filter(Boolean).length;
@@ -28,7 +30,7 @@ export function MaterialTile({ m, tone, back }: Props) {
 
   const cls = `lesson-card tone-${tone}`;
   const kind = text(KIND_LABEL[m.kind]);
-  const sub = song ? [song.artist, `${song.bpm} BPM`] : [kind, m.file_name];
+  const sub = song ? [song.artist, song.structure && `${song.structure.bpm} BPM`] : [kind, m.file_name];
   const body: ReactNode = (
     <div className="lesson-card-text">
       <div className="lesson-card-title">{text(m.title || song?.title || ex?.title || KIND_LABEL[m.kind])}</div>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { findExercise, findSong, songPath } from '../data/catalog';
+import { findExercise, songPath } from '../data/catalog';
+import { findSong, useSongs } from '../songs/store';
 import { toBeats } from '../data/library';
 import { GEAR_PATH, GEAR_REF } from '../data/gear';
 import { STROKES_PATH, STROKES_REF } from '../data/strokes';
@@ -23,7 +24,8 @@ export function MaterialCard({ m, onDelete }: Props) {
   const { pick, text, locale } = useI18n();
   const strokes = m.ref === STROKES_REF;
   const clip = m.kind === 'library' ? findClip(m.ref) : undefined;
-  const song = m.kind === 'song' ? findSong(m.ref) : undefined;
+  const songs = useSongs();
+  const song = m.kind === 'song' ? findSong(songs, m.ref) : undefined;
   const ex = m.kind === 'exercise' ? findExercise(m.ref) : undefined;
   const title = text(m.title || song?.title || ex?.title || KIND_LABEL[m.kind]);
   const beats = useMemo(() => (m.bars ?? []).map(toBeats), [m.bars]);

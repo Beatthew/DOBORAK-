@@ -5,7 +5,7 @@ import { SongMixer } from '../components/SongMixer';
 import { TopBar } from '../components/TopBar';
 import { useI18n } from '../i18n';
 import { SongEngine } from '../songs/engine';
-import { findSongData } from '../songs';
+import { findSong, loadSongData, useSongs } from '../songs/store';
 import { fitWidth, marksOf, rowSVG, setPlayhead } from '../songs/notation';
 import type { Beats, SongData } from '../songs/types';
 
@@ -60,13 +60,28 @@ function select(song: SongData, key: string, i18n: I18nFns): Sel {
 export function SongPage() {
   const { pick } = useI18n();
   const { id, sel: selKey = '' } = useParams();
-  const song = findSongData(id);
-  if (!song) {
+  const songs = useSongs();
+  const row = findSong(songs, id);
+  const [song, setSong] = useState<SongData | null>(null);
+  const [err, setErr] = useState('');
+  // a szerkesztés után (új updated_at) a lejátszó a friss szerkezetet kapja
+  useEffect(() => {
+    if (!row?.structure) return;
+    let alive = true;
+    loadSongData(row)
+      .then((s) => alive && setSong(s))
+      .catch((e) => alive && setErr(String(e.message || e)));
+    return () => {
+      alive = false;
+    };
+  }, [row?.id, row?.updated_at]);   // eslint-disable-line react-hooks/exhaustive-deps
+  if (!song || song.id !== id) {
+    const missing = songs && (!row || !row.structure);
     return (
       <>
-        <TopBar title={pick('Dal', 'Song')} backTo="/" />
+        <TopBar title={row?.title || pick('Dal', 'Song')} backTo="/" />
         <main className="page">
-          <p className="muted">{pick('Ez a dal nincs a BEATHUBban.', 'This song is not in BEATHUB.')}</p>
+          <p className="muted">{err || (missing ? pick('Ez a dal nincs a BEATHUBban.', 'This song is not in BEATHUB.') : pick('Betöltés…', 'Loading…'))}</p>
         </main>
       </>
     );
@@ -229,6 +244,11 @@ function SongPlayer({ song, selKey }: { song: SongData; selKey: string }) {
     <>
       <TopBar title={song.title} backTo={back} backLabel={t.back}>
         {song.artist && <p className="top-sub">{song.artist}</p>}
+        {profile?.role === 'teacher' && (
+          <Link className="btn small ghost top-edit" to={`/tananyag/dalok/${encodeURIComponent(song.id)}/szerkesztes`} state={{ back: pathname }}>
+            {pick('Szerkesztés', 'Edit')}
+          </Link>
+        )}
         <nav className="tabs">
           {[...TABS, ['song', pick('Teljes szám', 'Full song')] as [Tab, string]].map(([id, label]) => (
             <button key={id} className={id === tab ? 'on' : ''} onClick={() => setTab(id)}>

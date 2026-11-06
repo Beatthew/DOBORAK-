@@ -4,3 +4,7 @@ web/dist/
 web/.env.local
 web/.env.db
 supabase/006_onboarding_uj_diakok.sql
+worker/.env
+worker/work/
+worker/__pycache__/
+worker/migrate-preview.json

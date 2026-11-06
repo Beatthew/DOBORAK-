@@ -5,7 +5,7 @@ import { MISSING_TABLES, useLibrary } from '../data/library';
 import { lessons } from '../data/lessons';
 import { useI18n } from '../i18n';
 import { supabase } from '../lib/supabase';
-import { SONGS } from '../songs';
+import { useSongs } from '../songs/store';
 
 /** A tananyag kategóriái; a lista az appból bővíthető. */
 export function Library() {
@@ -24,7 +24,8 @@ export function Library() {
     void reload();
   };
 
-  const count = (id: string) => (id === 'dalok' ? SONGS.length : items.filter((i) => i.category === id).length);
+  const songs = useSongs();
+  const count = (id: string) => (id === 'dalok' ? songs?.length ?? 0 : items.filter((i) => i.category === id).length);
 
   return (
     <>

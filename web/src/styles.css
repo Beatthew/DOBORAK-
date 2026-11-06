@@ -2786,3 +2786,793 @@ label.form textarea.code {
     transition: none;
   }
 }
+
+/* ---------- Dalok: a Song Practice kezdőlapja (link, feldolgozás, mappák) ---------- */
+
+.song-hub {
+  gap: 18px;
+}
+
+.hub-upload {
+  display: flex;
+  gap: 8px;
+}
+
+.hub-upload input {
+  flex: 1;
+  min-width: 0;
+  min-height: 60px;
+  padding: 0 16px;
+  border: var(--line) solid var(--ink);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.worker-state {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: #ffd9d6;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.worker-state.up {
+  background: var(--track);
+}
+
+.hub-folder {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hub-folder h2 {
+  margin: 6px 0 0;
+  font-stretch: 78%;
+  font-weight: 900;
+  font-size: 26px;
+  text-transform: uppercase;
+}
+
+.hub-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.hub-card {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.hub-cover {
+  flex: none;
+  width: 96px;
+  height: 54px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--ink);
+}
+
+.hub-cover.none {
+  display: grid;
+  place-items: center;
+  color: var(--mint);
+  font-size: 26px;
+}
+
+.hub-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hub-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.hub-status small {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.hub-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(0, 8, 7, 0.15);
+  overflow: hidden;
+}
+
+.hub-progress span {
+  display: block;
+  height: 100%;
+  background: currentColor;
+  transition: width 0.4s;
+}
+
+.hub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.hub-card .btn {
+  min-height: 40px;
+  font-size: 14px;
+  border-color: currentColor;
+  color: inherit;
+}
+
+.hub-card .btn.primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--mint);
+}
+
+.hub-card .btn.pub.on {
+  background: var(--paper);
+  border-color: var(--paper);
+  color: var(--ink);
+}
+
+.hub-folder-pick {
+  min-height: 40px;
+  padding: 0 8px;
+  border: var(--line) solid currentColor;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.hub-folder-pick option {
+  color: var(--ink);
+}
+
+.hub-foot {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.top-edit {
+  align-self: flex-start;
+  margin-top: 10px;
+  border-color: var(--mint);
+  color: var(--mint);
+}
+
+@media (min-width: 760px) {
+  .hub-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Dal szerkesztő: a Song Practice SZERKESZTÉS nézete, BEATHUB színekkel ---------- */
+
+.song-editor {
+  gap: 16px;
+}
+
+.ed-player {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ed-player-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ed-player .song-progress {
+  cursor: pointer;
+  touch-action: none;
+}
+
+.ed-times {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ed-sections,
+.ed-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 6px;
+}
+
+.ed-sections {
+  border: var(--line) solid var(--track);
+}
+
+.ed-sheet {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.ed-sec-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ed-sec-head h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.ed-meta {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ed-meta em {
+  font-style: normal;
+  font-weight: 800;
+  color: #b3261e;
+}
+
+.ed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 52vh;
+  overflow: auto;
+}
+
+.ed-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 54px 54px 24px 32px;
+  gap: 6px;
+  align-items: center;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.ed-row-head {
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+}
+
+.ed-row input:not([type='checkbox']) {
+  min-width: 0;
+  height: 38px;
+  padding: 0 8px;
+  border: var(--line) solid var(--track);
+  border-radius: 6px;
+  background: #fff;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.ed-row input[type='number'] {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+
+.ed-row input[type='number']::-webkit-inner-spin-button,
+.ed-row input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ed-row input[readonly] {
+  color: rgba(0, 8, 7, 0.45);
+}
+
+.ed-row input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin: 0 auto;
+  accent-color: var(--teal);
+}
+
+.ed-row .handle,
+.ed-row .del {
+  height: 38px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-weight: 800;
+}
+
+.ed-row .handle {
+  cursor: grab;
+  touch-action: none;
+  opacity: 0.55;
+}
+
+.ed-row .del {
+  font-size: 20px;
+  opacity: 0.55;
+}
+
+.ed-row .handle:hover,
+.ed-row .del:hover {
+  background: var(--track);
+  opacity: 1;
+}
+
+.ed-row.active {
+  background: var(--mint);
+}
+
+.ed-row.active .handle,
+.ed-row.active .del {
+  opacity: 1;
+}
+
+.ed-row.drop-on {
+  box-shadow: inset 0 0 0 3px var(--teal);
+}
+
+.ed-row.drop-before {
+  box-shadow: 0 -3px 0 var(--teal);
+}
+
+.ed-row.drop-after {
+  box-shadow: 0 3px 0 var(--teal);
+}
+
+.ed-sec-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ed-sec-foot .btn {
+  min-height: 40px;
+  font-size: 13px;
+}
+
+.ed-sheet .score-head h2 {
+  color: var(--mint);
+}
+
+.ed-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.ed-tabs button,
+.ed-chip,
+.ed-lens button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: var(--line) solid rgba(252, 247, 255, 0.25);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--paper);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.ed-tabs button.on {
+  background: var(--paper);
+  border-color: var(--paper);
+  color: var(--ink);
+}
+
+.ed-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ed-chip small {
+  margin-left: 6px;
+  font-weight: 600;
+  opacity: 0.6;
+}
+
+.ed-chip i {
+  margin-left: 6px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(252, 247, 255, 0.15);
+  font-style: normal;
+  font-size: 10px;
+}
+
+.ed-chip.other {
+  opacity: 0.5;
+}
+
+.ed-chip.var {
+  min-height: 34px;
+  margin-left: -2px;
+  font-size: 12px;
+  border-style: dashed;
+}
+
+.ed-chip.on {
+  background: var(--mint);
+  border-color: var(--mint);
+  color: var(--ink);
+  opacity: 1;
+}
+
+.ed-chip.fill.on {
+  background: var(--sand);
+  border-color: var(--sand);
+}
+
+.ed-chip.add {
+  border-style: dashed;
+  opacity: 0.7;
+}
+
+.ed-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 6px;
+  max-height: 46vh;
+  overflow: auto;
+}
+
+.ed-tacet {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: rgba(252, 247, 255, 0.06);
+  font-size: 13px;
+}
+
+.ed-tacet b {
+  letter-spacing: 0.14em;
+  opacity: 0.5;
+}
+
+.ed-bar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 6px;
+  border: var(--line) solid transparent;
+  background: rgba(252, 247, 255, 0.04);
+}
+
+.ed-bar.now {
+  border-color: var(--mint);
+}
+
+.ed-bar.sel {
+  background: rgba(252, 247, 255, 0.14);
+}
+
+.ed-bar.multi.cont {
+  border-left-style: dashed;
+  border-left-color: rgba(252, 247, 255, 0.3);
+}
+
+.ed-bar-svg {
+  cursor: pointer;
+}
+
+.ed-bar-svg svg,
+.ed-pe-preview svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ed-bar .part {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--sand);
+  pointer-events: none;
+}
+
+.ed-bar select,
+.ed-grid select {
+  min-width: 0;
+  height: 32px;
+  padding: 0 6px;
+  border: var(--line) solid rgba(252, 247, 255, 0.25);
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ed-bar.isfill select {
+  border-color: var(--sand);
+  color: var(--sand);
+}
+
+.ed-pe {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 6px;
+  background: rgba(252, 247, 255, 0.06);
+}
+
+.ed-pe.variant {
+  box-shadow: inset 0 0 0 1.5px rgba(112, 248, 186, 0.45);
+}
+
+.ed-pe-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ed-pe-head input {
+  flex: 1;
+  min-width: 140px;
+  height: 40px;
+  padding: 0 10px;
+  border: var(--line) solid rgba(252, 247, 255, 0.25);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--paper);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.ed-pe-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.ed-pe-label small {
+  margin-left: 6px;
+  font-weight: 600;
+  opacity: 0.6;
+}
+
+.ed-pe .btn {
+  min-height: 40px;
+  border-color: rgba(252, 247, 255, 0.35);
+  color: var(--paper);
+  font-size: 13px;
+}
+
+.ed-lens {
+  display: flex;
+}
+
+.ed-lens button {
+  border-radius: 0;
+  margin-left: -1.5px;
+}
+
+.ed-lens button:first-child {
+  border-radius: 6px 0 0 6px;
+  margin-left: 0;
+}
+
+.ed-lens button:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.ed-lens button.on {
+  position: relative;
+  background: var(--mint);
+  border-color: var(--mint);
+  color: var(--ink);
+}
+
+.ed-pe.fill .ed-lens button.on {
+  background: var(--sand);
+  border-color: var(--sand);
+}
+
+.ed-pe-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 1120px;
+}
+
+.ed-grid {
+  overflow-x: auto;
+  touch-action: none;
+}
+
+.ed-grid-bar {
+  display: grid;
+  grid-template-columns: 92px repeat(4, minmax(64px, 1fr));
+  gap: 4px 6px;
+  align-items: center;
+  min-width: 420px;
+}
+
+.ed-grid .gbar {
+  grid-column: 1 / -1;
+  margin-top: 10px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(252, 247, 255, 0.06);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.ed-grid .gbar.cur {
+  background: rgba(112, 248, 186, 0.18);
+  color: var(--mint);
+}
+
+.ed-grid .lbl {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+.ed-grid .cells {
+  display: flex;
+  gap: 2px;
+}
+
+.ed-grid .cell {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  border: 0;
+  border-radius: 4px;
+  background: rgba(252, 247, 255, 0.1);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.ed-grid .cell:hover {
+  background: rgba(252, 247, 255, 0.22);
+}
+
+.ed-grid .cell.on {
+  background: var(--mint);
+}
+
+.ed-pe.fill .ed-grid .cell.on {
+  background: var(--sand);
+}
+
+.ed-grid .cell.ghost {
+  opacity: 0.6;
+}
+
+.ed-grid .cell.drag-src {
+  opacity: 0.35;
+}
+
+.ed-grid .cell.drag-over {
+  box-shadow: inset 0 0 0 2px var(--paper);
+}
+
+.ed-grid .cell.drag-del {
+  background: #b3261e;
+}
+
+.ed-grid .hands-lbl {
+  color: var(--mint);
+}
+
+.ed-grid .hand {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+
+.ed-grid .hb {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  border: 0;
+  background: transparent;
+  color: rgba(252, 247, 255, 0.35);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.ed-grid .hb.on {
+  color: var(--ink);
+  background: var(--paper);
+  border-radius: 4px;
+}
+
+.ed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ed-msg {
+  flex: 1;
+  min-width: 120px;
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+.ed-msg.err {
+  color: #b3261e;
+  opacity: 1;
+}
+
+.ed-actions .btn.pub.on {
+  background: var(--mint);
+  border-color: var(--mint);
+}
+
+@media (min-width: 1000px) {
+  .song-editor {
+    display: grid;
+    grid-template-columns: 380px minmax(0, 1fr);
+    grid-template-areas:
+      'player player'
+      'sections sheet'
+      'mixer sheet'
+      'actions actions'
+      'back back';
+    align-items: start;
+  }
+  .ed-player {
+    grid-area: player;
+  }
+  .ed-sections {
+    grid-area: sections;
+  }
+  .ed-sheet {
+    grid-area: sheet;
+  }
+  .song-editor .mixer-card {
+    grid-area: mixer;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ed-actions {
+    grid-area: actions;
+  }
+  .song-editor .back-link {
+    grid-area: back;
+  }
+}
