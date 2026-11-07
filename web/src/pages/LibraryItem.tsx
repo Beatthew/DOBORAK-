@@ -86,7 +86,7 @@ export function LibraryItem() {
       </TopBar>
       <main className="page">
         {item.clip ? (
-          <StoredClipPlayer clip={item.clip} title={text(item.title)} bpm={item.bpm} />
+          <StoredClipPlayer clip={item.clip} title={text(item.title)} bpm={item.bpm} main={bars} />
         ) : clip ? (
           <ClipPlayer clip={clip} />
         ) : bars.length > 0 ? (

@@ -323,7 +323,7 @@ function EntryCard({ entry: e, onRemove, onMove }: { entry: Entry; onRemove: () 
       </header>
       <div className="composer-card-body">
         {e.clip ? (
-          <StoredClipPlayer clip={e.clip} title={text(e.title)} bpm={e.bpm ?? 90} />
+          <StoredClipPlayer clip={e.clip} title={text(e.title)} bpm={e.bpm ?? 90} main={beats} />
         ) : clip ? (
           <ClipPlayer clip={clip} />
         ) : beats.length > 0 ? (

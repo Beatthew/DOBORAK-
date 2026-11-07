@@ -9,7 +9,8 @@ import { PlayIcon, StopIcon } from './Icons';
 import { SongMixer } from './SongMixer';
 
 /** Egy dalból kivágott részlet: a kottája, a saját felvételén ismételve, alatta a keverővel. */
-export function ClipPlayer({ clip }: { clip: SongData }) {
+/** main: a nagy kotta (a groove vagy fill maga); nélküle a részlet első üteme */
+export function ClipPlayer({ clip, main }: { clip: SongData; main?: Beats[] }) {
   const { t, pick } = useI18n();
   const { stop } = usePlayback();
   const [engine, setEngine] = useState<SongEngine | null>(null);
@@ -49,10 +50,10 @@ export function ClipPlayer({ clip }: { clip: SongData }) {
   const svgs = useMemo(() => {
     const bars = clip.score.slice(1) as Beats[];
     return {
-      big: rowSVG([bars[0]], [''], 560),
+      big: rowSVG(main?.length ? main : [bars[0]], (main?.length ? main : [bars[0]]).map(() => ''), 560 * Math.max(1, main?.length ?? 1)),
       strip: rowSVG(bars, bars.map((_, i) => i + 1), 420 * bars.length),
     };
-  }, [clip]);
+  }, [clip, main]);
 
   // lejátszófej: képkockánként, közvetlenül az SVG-ben (React újrarajzolás nélkül)
   useEffect(() => {
@@ -63,12 +64,14 @@ export function ClipPlayer({ clip }: { clip: SongData }) {
       const tm = engine.timing, pos = tm.barPos(engine.time()), b = Math.min(tm.barAt(engine.time()), lastBar), frac = pos - Math.floor(pos);
       setBar((old) => (old === b ? old : b));
       const on = engine.playing;
-      setPlayhead(bigBox.current?.querySelector('svg') ?? null, on ? 0 : -1, frac, true);
+      // a nagy kotta akkor világít, amikor a részletben épp az ő ütemét játssza
+      const big = main?.length ? main.findIndex((m) => JSON.stringify([...m]) === JSON.stringify([...(clip.score[b] ?? [])])) : 0;
+      setPlayhead(bigBox.current?.querySelector('svg') ?? null, on ? big : -1, frac, true);
       setPlayhead(stripBox.current?.querySelector('svg') ?? null, on ? b - 1 : -1, frac);
     };
     frame();
     return () => cancelAnimationFrame(raf);
-  }, [engine, lastBar]);
+  }, [engine, lastBar, main, clip]);
 
   return (
     <div className="clip-player">
@@ -96,7 +99,7 @@ export function ClipPlayer({ clip }: { clip: SongData }) {
 }
 
 /** a tárhelyen lévő részlet (a szerkesztő „Tananyagba” gombjával készült) */
-export function StoredClipPlayer({ clip, title, bpm }: { clip: ClipRef; title: string; bpm: number }) {
+export function StoredClipPlayer({ clip, title, bpm, main }: { clip: ClipRef; title: string; bpm: number; main?: Beats[] }) {
   const { pick } = useI18n();
   const [song, setSong] = useState<SongData | null>(null);
   const [err, setErr] = useState('');
@@ -110,5 +113,5 @@ export function StoredClipPlayer({ clip, title, bpm }: { clip: ClipRef; title: s
     };
   }, [clip, title, bpm]);
   if (!song) return <p className="muted">{err || pick('Betöltés…', 'Loading…')}</p>;
-  return <ClipPlayer clip={song} />;
+  return <ClipPlayer clip={song} main={main} />;
 }
