@@ -35,6 +35,38 @@ export interface PlayOptions {
 
 let ctx: AudioContext | null = null;
 
+let drumBus: GainNode | null = null;
+let metroBus: GainNode | null = null;
+
+/** A gyakorlás keverése: a dob és a metronóm hangereje 0–100 (a dob 0-n: csak a metronóm szól, mint egy segédvonal).
+ *  Minden gyakorlatra érvényes, és megmarad (localStorage). */
+export interface PracticeMix {
+  drums: number;
+  metro: number;
+}
+const MIX_KEY = 'practice-mix';
+export function loadPracticeMix(): PracticeMix {
+  try {
+    return { drums: 100, metro: 0, ...JSON.parse(localStorage.getItem(MIX_KEY) || '{}') };
+  } catch {
+    return { drums: 100, metro: 0 };
+  }
+}
+let mix = loadPracticeMix();
+const level = (v: number) => (v / 100) ** 2;   // négyzetes görbe, mint a dal keverőjén
+export function setPracticeMix(next: PracticeMix) {
+  mix = next;
+  try {
+    localStorage.setItem(MIX_KEY, JSON.stringify(next));
+  } catch {
+    /* privát mód */
+  }
+  if (ctx && drumBus && metroBus) {
+    drumBus.gain.setTargetAtTime(level(mix.drums), ctx.currentTime, 0.015);
+    metroBus.gain.setTargetAtTime(level(mix.metro), ctx.currentTime, 0.015);
+  }
+}
+
 function audio(): AudioContext | null {
   if (ctx) return ctx;
   const AC =
@@ -42,7 +74,28 @@ function audio(): AudioContext | null {
     (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AC) return null;
   ctx = new AC();
+  drumBus = ctx.createGain();
+  drumBus.gain.value = level(mix.drums);
+  drumBus.connect(ctx.destination);
+  metroBus = ctx.createGain();
+  metroBus.gain.value = level(mix.metro);
+  metroBus.connect(ctx.destination);
   return ctx;
+}
+
+/** ide szól minden dobhang (a dob hangereje ezen állítható) */
+const out = (c: AudioContext): AudioNode => drumBus ?? c.destination;
+
+/** metronóm kattanás, mint a dal metronómja (az ütem elején magasabb) */
+function click(c: AudioContext, t: number, accent: boolean) {
+  if (!metroBus || mix.metro <= 0) return;
+  const o = c.createOscillator(), g = c.createGain();
+  o.frequency.value = accent ? 1600 : 1050;
+  g.gain.setValueAtTime(accent ? 0.9 : 0.55, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+  o.connect(g).connect(metroBus);
+  o.start(t);
+  o.stop(t + 0.06);
 }
 
 function noise(c: AudioContext, t: number, dur: number, freq: number, type: BiquadFilterType, vol: number) {
@@ -58,7 +111,7 @@ function noise(c: AudioContext, t: number, dur: number, freq: number, type: Biqu
   const gain = c.createGain();
   gain.gain.setValueAtTime(vol, t);
   gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  src.connect(filter).connect(gain).connect(c.destination);
+  src.connect(filter).connect(gain).connect(out(c));
   src.start(t);
   src.stop(t + dur);
 }
@@ -71,7 +124,7 @@ function tone(c: AudioContext, t: number, from: number, to: number, dur: number,
   osc.frequency.exponentialRampToValueAtTime(to, t + dur * 0.6);
   gain.gain.setValueAtTime(vol, t);
   gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  osc.connect(gain).connect(c.destination);
+  osc.connect(gain).connect(out(c));
   osc.start(t);
   osc.stop(t + dur + 0.02);
 }
@@ -131,7 +184,7 @@ function sample(c: AudioContext, t: number, name: SampleName, level = 1): boolea
   src.buffer = buffer;
   const gain = c.createGain();
   gain.gain.value = sampleGain[name] * level;
-  src.connect(gain).connect(c.destination);
+  src.connect(gain).connect(out(c));
   src.start(t);
   return true;
 }
@@ -239,6 +292,8 @@ export class Player {
           s = 0;
         }
         hit(c, next, seq[s].bar, seq[s].i);
+        // metronóm negyedenként (a lépések felosztása szerint), az ütem elején hangsúllyal
+        if (seq[s].i % (opts.div ?? 2) === 0) click(c, next, seq[s].i === 0);
         const step = s + 1;
         later(() => opts.onStep?.(step, total), next);
         s += 1;

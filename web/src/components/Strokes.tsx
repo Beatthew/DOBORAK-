@@ -3,6 +3,7 @@ import { preloadSamples, SCORE_DIV, scoreBars } from '../audio/engine';
 import { usePlayback } from '../audio/playback';
 import { handHits, handMotion, STROKE_EXERCISES, STROKE_TYPES, strokeBeats, strokeHeight, type Hand, type StrokeExercise, type StrokeType } from '../data/strokes';
 import { useI18n } from '../i18n';
+import { PracticeMixer } from './Score';
 import { setPlayhead, strokeBarSVG } from '../songs/notation';
 import { PlayIcon, StopIcon } from './Icons';
 
@@ -223,6 +224,7 @@ function ExerciseOverlay({ ex, bpm, onBpm, lead, onLead, onClose }: OverlayProps
             <input type="range" min={40} max={200} value={bpm} onChange={(e) => onBpm(+e.target.value)} />
           </label>
         </div>
+        <PracticeMixer />
       </div>
     </dialog>
   );

@@ -3,6 +3,7 @@ import { useLocation, useParams } from 'react-router-dom';
 import { preloadSamples } from '../audio/engine';
 import { usePlayback } from '../audio/playback';
 import { ExerciseCard } from '../components/ExerciseCard';
+import { PracticeMixer } from '../components/Score';
 import { FillBlock } from '../components/FillBlock';
 import { GrooveBlock } from '../components/GrooveBlock';
 import { StaffKey } from '../components/StaffNotation';
@@ -66,6 +67,7 @@ export function LessonPage() {
         </nav>
       </TopBar>
       <main style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <PracticeMixer className="lesson-mix" />
         {shownGrooves.map((g) => (
           <GrooveBlock key={g.id} groove={g} lesson={lesson} index={grooveTone(g.id)} />
         ))}
