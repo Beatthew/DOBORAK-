@@ -23,6 +23,8 @@ interface Entry {
   sub: string;
   bars?: ScoreBar[];
   bpm?: number;
+  bpmMin?: number | null;
+  bpmMax?: number | null;
   /** A tananyag eredeti képe: mentéskor a diák mappájába másolódik, hogy a diák is megnyithassa. */
   image?: string | null;
   clip?: ClipRef | null;
@@ -38,6 +40,8 @@ interface Draft {
   date: string;
   title: string;
   notes: string;
+  /** a diák még nem nyithatja meg */
+  locked?: boolean;
   entries: Entry[];
 }
 
@@ -54,6 +58,8 @@ function fromMaterial(m: Material, songs: SongRow[] | null): Entry {
     sub: song?.artist ?? m.note,
     bars: m.bars ?? undefined,
     bpm: m.bpm ?? undefined,
+    bpmMin: m.bpm_min ?? null,
+    bpmMax: m.bpm_max ?? null,
     clip: m.clip ?? null,
     fileName: m.file_name,
     materialId: m.id,
@@ -109,7 +115,7 @@ export function LessonComposer() {
       const entries = inLessonOrder((m?.data as Material[]) ?? []).map((x) => fromMaterial(x, songRows));
       if (dob) entries.unshift({ key: `exercise:${dob.ref}`, kind: 'exercise', ref: dob.ref, title: dob.title, sub: '', doborak: true });
       setSaved(entries);
-      setDraft({ date: current.date, title: current.title, notes: current.notes, entries });
+      setDraft({ date: current.date, title: current.title, notes: current.notes, locked: !!current.locked, entries });
     });
   }, [id, lessonId, storageKey]);
 
@@ -155,6 +161,7 @@ export function LessonComposer() {
       title: draft.title.trim() || `${number}. óra`,
       notes: draft.notes.trim(),
       doborak: draft.entries.find((e) => e.doborak)?.ref ?? null,
+      locked: !!draft.locked,
     };
     const res = lesson
       ? await supabase.from('lessons').update(row).eq('id', lesson.id).select('id').single()
@@ -182,6 +189,7 @@ export function LessonComposer() {
         note: e.kind === 'library' ? e.sub : '',
         bars: e.bars ?? null,
         bpm: e.bpm ?? null,
+        ...(e.bpmMin || e.bpmMax ? { bpm_min: e.bpmMin ?? null, bpm_max: e.bpmMax ?? null } : {}),
         ...(e.clip ? { clip: e.clip } : {}),
         position: ordered.indexOf(e),
         file_path: filePath,
@@ -269,6 +277,10 @@ export function LessonComposer() {
             {pick('Összefoglaló', 'Summary')}
             <textarea rows={3} placeholder={pick('Mit vettünk, mire figyeljen…', 'What we covered, what to watch for…')} value={draft.notes} onChange={(e) => change({ notes: e.target.value })} />
           </label>
+          <label className="composer-lock">
+            <input type="checkbox" checked={!!draft.locked} onChange={(e) => change({ locked: e.target.checked })} />
+            {pick('Zárolva: a diák látja, de még nem nyithatja meg', 'Locked: the student sees it but cannot open it yet')}
+          </label>
         </div>
         <div className="composer-actions">
           {lesson && (
@@ -327,7 +339,7 @@ function EntryCard({ entry: e, onRemove, onMove }: { entry: Entry; onRemove: () 
         ) : clip ? (
           <ClipPlayer clip={clip} />
         ) : beats.length > 0 ? (
-          <ScorePlayer id={`composer:${e.key}`} bars={beats} bpm={bpm} onBpm={setBpm} />
+          <ScorePlayer id={`composer:${e.key}`} bars={beats} bpm={bpm} onBpm={setBpm} min={e.bpmMin} max={e.bpmMax} />
         ) : e.kind === 'song' && e.ref ? (
           <Link className="btn small primary" to={songPath(e.ref)}>
             {pick('Gyakorlás', 'Practice')}
@@ -411,6 +423,8 @@ function Browser({ cat, name, heading, base, picked, onToggle, onOpen }: Browser
             sub: i.subtitle,
             bars: i.bars,
             bpm: i.bpm,
+            bpmMin: i.bpm_min ?? null,
+            bpmMax: i.bpm_max ?? null,
             image: i.image_path,
             clip: i.clip ?? null,
             fileName: i.file_name,

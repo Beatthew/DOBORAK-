@@ -90,7 +90,7 @@ export function LibraryItem() {
         ) : clip ? (
           <ClipPlayer clip={clip} />
         ) : bars.length > 0 ? (
-          <ScorePlayer id={item.id} bars={bars} bpm={bpm} onBpm={setBpm} />
+          <ScorePlayer id={item.id} bars={bars} bpm={bpm} onBpm={setBpm} min={item.bpm_min} max={item.bpm_max} />
         ) : (
           <p className="note-box">{pick('Ez a tétel még nincs átírva kottára.', 'This item has not been transcribed yet.')}</p>
         )}

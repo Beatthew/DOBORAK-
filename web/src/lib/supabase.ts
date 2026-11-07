@@ -27,6 +27,8 @@ export interface LessonRow {
   notes: string;
   /** Az óra anyaga a kész órákból: az ottani óra száma, vagy null. */
   doborak: string | null;
+  /** előre elkészített óra: a diák látja, de még nem nyithatja meg */
+  locked?: boolean;
   created_at: string;
 }
 
@@ -44,6 +46,9 @@ export interface Material {
   /** A tananyagból kiválasztott tétel kottája (másolat, a diák nem látja a tananyag tábláit). */
   bars: { beats: string[]; hands?: string[] }[] | null;
   bpm: number | null;
+  /** a tempócsúszka tartománya (pl. 65–100); üres = a szokásos 40–200 */
+  bpm_min?: number | null;
+  bpm_max?: number | null;
   /** dalból kivágott hang, a tananyag-tételből másolva */
   clip?: import('../songs/clips').ClipRef | null;
   /** Hányadik az órán belül; null, ami még nem kapott helyet (az a végére kerül, felvétel szerint). */

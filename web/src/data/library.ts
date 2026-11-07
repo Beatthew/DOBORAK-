@@ -29,6 +29,9 @@ export interface LibraryItem {
   note: string;
   image_path: string | null;
   file_name: string | null;
+  /** a tempócsúszka tartománya; üres = a szokásos */
+  bpm_min?: number | null;
+  bpm_max?: number | null;
   /** dalból kivágott hang (a szerkesztő „Tananyagba” gombja) */
   clip?: ClipRef | null;
   builtin?: boolean;

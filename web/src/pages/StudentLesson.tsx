@@ -48,6 +48,17 @@ export function StudentLesson() {
     );
   }
 
+  if (lesson.locked && !teacher) {
+    return (
+      <>
+        <TopBar title={text(lesson.title)} backTo={backTo} backLabel={backLabel} />
+        <main className="page">
+          <p className="muted">{pick('Ez az óra még nem nyílt meg.', 'This lesson is not open yet.')}</p>
+        </main>
+      </>
+    );
+  }
+
   const number = lessonNumber(lessons!, lesson);
   const content = readyLessons.find((x) => String(x.number) === lesson.doborak);
   const back = `/ora/${lesson.id}`;

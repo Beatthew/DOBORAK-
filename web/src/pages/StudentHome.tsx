@@ -90,13 +90,23 @@ function MyLessons({ lessons, materials }: { lessons: LessonRow[]; materials: Ma
       <div className="grid">
         {[...lessons].reverse().map((l) => {
           const number = lessonNumber(lessons, l);
-          return (
-            <Link key={l.id} className={`lesson-card tone-${(number + 1) % 2}`} to={`/ora/${l.id}`}>
+          const body = (
+            <>
               <div className="lesson-card-num">{number}</div>
               <div className="lesson-card-text">
                 <div className="lesson-card-title">{text(l.title) || t.lessonN(number)}</div>
-                <div className="lesson-card-sub">{new Date(l.date).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                <div className="lesson-card-sub">
+                  {l.locked ? pick('Hamarosan nyílik', 'Opens soon') : new Date(l.date).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}
+                </div>
               </div>
+            </>
+          );
+          // a zárolt órát a tanár oldja fel: addig látszik, de nem nyílik meg
+          return l.locked ? (
+            <div key={l.id} className={`lesson-card tone-${(number + 1) % 2} locked`} aria-disabled="true">{body}</div>
+          ) : (
+            <Link key={l.id} className={`lesson-card tone-${(number + 1) % 2}`} to={`/ora/${l.id}`}>
+              {body}
             </Link>
           );
         })}
@@ -147,7 +157,7 @@ export function LessonsList({ lessons, materials, onDelete, onEdit, back, ascend
             <div className="lesson-card-num">{number}</div>
             <div className="lesson-card-text">
               <div className="lesson-card-title">{title}</div>
-              <div className="lesson-card-sub">{[date, summary].filter(Boolean).join(' · ')}</div>
+              <div className="lesson-card-sub">{[date, summary, l.locked && pick('zárolva', 'locked')].filter(Boolean).join(' · ')}</div>
               {l.notes && <p className="lesson-notes">{l.notes}</p>}
             </div>
           </>

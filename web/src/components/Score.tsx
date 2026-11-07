@@ -44,10 +44,13 @@ interface PlayerProps {
   bars: Beats[];
   bpm: number;
   onBpm: (bpm: number) => void;
+  /** a tempócsúszka tartománya (alapból 40–200) */
+  min?: number | null;
+  max?: number | null;
 }
 
 /** Kotta lejátszógombbal és tempóval: visszahallgatható, a lejátszófej követi a kottát. */
-export function ScorePlayer({ id, bars, bpm, onBpm }: PlayerProps) {
+export function ScorePlayer({ id, bars, bpm, onBpm, min, max }: PlayerProps) {
   const { t, pick } = useI18n();
   const { playingId, step, toggle, stop } = usePlayback();
   const playId = `score:${id}`;
@@ -78,7 +81,7 @@ export function ScorePlayer({ id, bars, bpm, onBpm }: PlayerProps) {
           <span>
             {pick('Tempó', 'Tempo')} <b>{bpm} BPM</b>
           </span>
-          <input type="range" min={40} max={200} value={bpm} onChange={(e) => onBpm(+e.target.value)} />
+          <input type="range" min={min ?? 40} max={max ?? 200} value={bpm} onChange={(e) => onBpm(+e.target.value)} />
         </label>
       </div>
     </section>

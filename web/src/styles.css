@@ -3576,3 +3576,22 @@ label.form textarea.code {
     grid-area: back;
   }
 }
+
+/* zárolt óra: a diák látja, de még nem nyitható */
+.lesson-card.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.composer-lock {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px !important;
+}
+
+.composer-lock input {
+  width: 22px;
+  min-height: 0 !important;
+  height: 22px;
+  accent-color: var(--teal);
+}

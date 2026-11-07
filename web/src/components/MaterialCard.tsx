@@ -41,7 +41,7 @@ export function MaterialCard({ m, onDelete }: Props) {
       {m.note && <p className="mat-note">{text(m.note)}</p>}
       {!strokes && beats.length > 0 && (
         <div className="mat-score">
-          {m.clip ? <StoredClipPlayer clip={m.clip} title={title} bpm={m.bpm ?? 90} main={beats} /> : clip ? <ClipPlayer clip={clip} /> : <ScorePlayer id={m.id} bars={beats} bpm={bpm} onBpm={setBpm} />}
+          {m.clip ? <StoredClipPlayer clip={m.clip} title={title} bpm={m.bpm ?? 90} main={beats} /> : clip ? <ClipPlayer clip={clip} /> : <ScorePlayer id={m.id} bars={beats} bpm={bpm} onBpm={setBpm} min={m.bpm_min} max={m.bpm_max} />}
         </div>
       )}
       <div className="mat-actions">
