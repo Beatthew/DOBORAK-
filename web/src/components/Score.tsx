@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
-import { loadPracticeMix, preloadSamples, SCORE_DIV, scoreBars, setPracticeMix, type PracticeMix } from '../audio/engine';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { PRACTICE_MIX0, preloadSamples, SCORE_DIV, scoreBars, setPracticeMix, type PracticeMix } from '../audio/engine';
 import { usePlayback } from '../audio/playback';
 import { useI18n } from '../i18n';
 import { rowSVG, setPlayhead } from '../songs/notation';
@@ -55,6 +55,7 @@ export function ScorePlayer({ id, bars, bpm, onBpm, min, max }: PlayerProps) {
   const { playingId, step, toggle, stop } = usePlayback();
   const playId = `score:${id}`;
   const playing = playingId === playId;
+  const [mix, setMix] = usePracticeMix(playing);
   useEffect(() => {
     void preloadSamples();
     return stop;
@@ -73,7 +74,10 @@ export function ScorePlayer({ id, bars, bpm, onBpm, min, max }: PlayerProps) {
           type="button"
           className="play-btn"
           aria-label={playing ? t.stop : t.play}
-          onClick={() => toggle(playId, scoreBars(bars), { bpm, loop: true, div: SCORE_DIV, track: true })}
+          onClick={() => {
+            setPracticeMix(mix);
+            toggle(playId, scoreBars(bars), { bpm, loop: true, div: SCORE_DIV, track: true });
+          }}
         >
           {playing ? <StopIcon /> : <PlayIcon />}
         </button>
@@ -84,42 +88,38 @@ export function ScorePlayer({ id, bars, bpm, onBpm, min, max }: PlayerProps) {
           <input type="range" min={min ?? 40} max={max ?? 200} value={bpm} onChange={(e) => onBpm(+e.target.value)} />
         </label>
       </div>
-      <PracticeMixer />
+      <PracticeMixer mix={mix} onChange={setMix} />
     </section>
   );
 }
 
-/* a gyakorlás keverése az egész appban közös: egy helyen állítva mindegyik lejátszón ugyanaz látszik */
-let mixNow = loadPracticeMix();
-const mixListeners = new Set<() => void>();
-const subscribeMix = (f: () => void) => {
-  mixListeners.add(f);
-  return () => mixListeners.delete(f);
-};
-function changeMix(next: PracticeMix) {
-  mixNow = next;
-  setPracticeMix(next);
-  mixListeners.forEach((f) => f());
-}
-
-/** Dob és metronóm hangereje a gyakorlatoknál (mint a dal keverőjén). A dob 0-n: csak a metronóm szól. */
-export function PracticeMixer({ className = '' }: { className?: string }) {
+/** Dob és metronóm hangereje egy gyakorlatnál (mint a dal keverőjén). A dob 0-n: csak a metronóm szól.
+ *  Minden gyakorlatnak saját keverése van, nem hat a többire. */
+export function PracticeMixer({ mix, onChange, className = '' }: { mix: PracticeMix; onChange: (m: PracticeMix) => void; className?: string }) {
   const { pick } = useI18n();
-  const mix = useSyncExternalStore(subscribeMix, () => mixNow);
   return (
     <div className={`practice-mix ${className}`}>
       <label className="slider tempo">
         <span>
           {pick('Dob', 'Drums')} <b>{mix.drums}</b>
         </span>
-        <input type="range" min={0} max={100} value={mix.drums} onChange={(e) => changeMix({ ...mix, drums: +e.target.value })} />
+        <input type="range" min={0} max={100} value={mix.drums} onChange={(e) => onChange({ ...mix, drums: +e.target.value })} />
       </label>
       <label className="slider tempo">
         <span>
           {pick('Metronóm', 'Metronome')} <b>{mix.metro}</b>
         </span>
-        <input type="range" min={0} max={100} value={mix.metro} onChange={(e) => changeMix({ ...mix, metro: +e.target.value })} />
+        <input type="range" min={0} max={100} value={mix.metro} onChange={(e) => onChange({ ...mix, metro: +e.target.value })} />
       </label>
     </div>
   );
+}
+
+/** egy gyakorlat saját keverése: induláskor és állításkor (ha épp ez szól) ez kerül a lejátszóra */
+export function usePracticeMix(playing: boolean) {
+  const [mix, setMix] = useState<PracticeMix>(PRACTICE_MIX0);
+  useEffect(() => {
+    if (playing) setPracticeMix(mix);
+  }, [playing, mix]);
+  return [mix, setMix] as const;
 }

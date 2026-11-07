@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { preloadSamples } from '../audio/engine';
 import { usePlayback } from '../audio/playback';
 import { ExerciseCard } from '../components/ExerciseCard';
 import { PracticeMixer } from '../components/Score';
+import { PRACTICE_MIX0, setPracticeMix } from '../audio/engine';
 import { FillBlock } from '../components/FillBlock';
 import { GrooveBlock } from '../components/GrooveBlock';
 import { StaffKey } from '../components/StaffNotation';
@@ -18,6 +19,9 @@ export function LessonPage() {
   const { stop } = usePlayback();
   const { state } = useLocation() as { state: { back?: string } | null };
   const back = state?.back ?? '/';
+  // a kész óra gyakorlatainak saját keverése (az oldalra érvényes, a többi gyakorlatra nem hat)
+  const [mix, setMix] = useState(PRACTICE_MIX0);
+  useEffect(() => setPracticeMix(PRACTICE_MIX0), []);
   const lesson = lessons.find((l) => String(l.number) === number);
 
   useEffect(() => stop, [stop]);
@@ -67,7 +71,7 @@ export function LessonPage() {
         </nav>
       </TopBar>
       <main style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <PracticeMixer className="lesson-mix" />
+        <PracticeMixer className="lesson-mix" mix={mix} onChange={(m) => { setMix(m); setPracticeMix(m); }} />
         {shownGrooves.map((g) => (
           <GrooveBlock key={g.id} groove={g} lesson={lesson} index={grooveTone(g.id)} />
         ))}

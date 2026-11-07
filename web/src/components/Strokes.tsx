@@ -3,7 +3,8 @@ import { preloadSamples, SCORE_DIV, scoreBars } from '../audio/engine';
 import { usePlayback } from '../audio/playback';
 import { handHits, handMotion, STROKE_EXERCISES, STROKE_TYPES, strokeBeats, strokeHeight, type Hand, type StrokeExercise, type StrokeType } from '../data/strokes';
 import { useI18n } from '../i18n';
-import { PracticeMixer } from './Score';
+import { PracticeMixer, usePracticeMix } from './Score';
+import { setPracticeMix } from '../audio/engine';
 import { setPlayhead, strokeBarSVG } from '../songs/notation';
 import { PlayIcon, StopIcon } from './Icons';
 
@@ -102,6 +103,7 @@ function ExerciseOverlay({ ex, bpm, onBpm, lead, onLead, onClose }: OverlayProps
   const anchor = useRef<{ pos: number; at: number } | null>(null);
   const playId = `stroke:${ex.n}`;
   const playing = playingId === playId;
+  const [mix, setMix] = usePracticeMix(playing);
   const html = useMemo(() => exerciseSVGs(ex), [ex]);
   const sound = useMemo(() => scoreBars(ex.bars.map((bar) => strokeBeats(bar, ex.meter, true))), [ex]);
   const barSteps = SCORE_DIV * ex.meter;
@@ -213,7 +215,10 @@ function ExerciseOverlay({ ex, bpm, onBpm, lead, onLead, onClose }: OverlayProps
             type="button"
             className="play-btn"
             aria-label={playing ? t.stop : t.play}
-            onClick={() => toggle(playId, sound, { bpm, loop: true, div: SCORE_DIV, track: true })}
+            onClick={() => {
+              setPracticeMix(mix);
+              toggle(playId, sound, { bpm, loop: true, div: SCORE_DIV, track: true });
+            }}
           >
             {playing ? <StopIcon /> : <PlayIcon />}
           </button>
@@ -224,7 +229,7 @@ function ExerciseOverlay({ ex, bpm, onBpm, lead, onLead, onClose }: OverlayProps
             <input type="range" min={40} max={200} value={bpm} onChange={(e) => onBpm(+e.target.value)} />
           </label>
         </div>
-        <PracticeMixer />
+        <PracticeMixer mix={mix} onChange={setMix} />
       </div>
     </dialog>
   );

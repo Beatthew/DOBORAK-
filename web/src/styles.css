@@ -3612,3 +3612,59 @@ label.form textarea.code {
   background: var(--ink);
   color: var(--paper);
 }
+
+/* a diák jegyzetei (tanári nézet, az órák fölött) */
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.notes-add {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notes textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: var(--line) solid var(--track);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 16px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.notes-add .btn {
+  align-self: flex-end;
+}
+
+.note-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 6px;
+  background: var(--sand);
+}
+
+.note-card small {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  opacity: 0.6;
+}
+
+.note-card p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.note-actions {
+  display: flex;
+  gap: 6px;
+}

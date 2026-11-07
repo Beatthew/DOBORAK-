@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { MaterialCard } from '../components/MaterialCard';
+import { StudentNotes } from '../components/StudentNotes';
 import { TopBar } from '../components/TopBar';
 import { TuitionTracker } from '../components/TuitionTracker';
 import { exerciseList } from '../data/catalog';
@@ -84,6 +85,7 @@ export function TeacherStudent() {
             )}
             {tab === 'lessons' ? (
               <>
+                <StudentNotes studentId={id} />
                 <LessonsList
                   lessons={lessons}
                   materials={materials}

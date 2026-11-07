@@ -39,28 +39,17 @@ let drumBus: GainNode | null = null;
 let metroBus: GainNode | null = null;
 
 /** A gyakorlás keverése: a dob és a metronóm hangereje 0–100 (a dob 0-n: csak a metronóm szól, mint egy segédvonal).
- *  Minden gyakorlatra érvényes, és megmarad (localStorage). */
+ *  Minden gyakorlatnak saját keverése van: amelyik épp szól, az állítja be (egyszerre egy szól). */
 export interface PracticeMix {
   drums: number;
   metro: number;
 }
-const MIX_KEY = 'practice-mix';
-export function loadPracticeMix(): PracticeMix {
-  try {
-    return { drums: 100, metro: 0, ...JSON.parse(localStorage.getItem(MIX_KEY) || '{}') };
-  } catch {
-    return { drums: 100, metro: 0 };
-  }
-}
-let mix = loadPracticeMix();
+export const PRACTICE_MIX0: PracticeMix = { drums: 100, metro: 0 };
+let mix = PRACTICE_MIX0;
 const level = (v: number) => (v / 100) ** 2;   // négyzetes görbe, mint a dal keverőjén
 export function setPracticeMix(next: PracticeMix) {
   mix = next;
-  try {
-    localStorage.setItem(MIX_KEY, JSON.stringify(next));
-  } catch {
-    /* privát mód */
-  }
+  audio();
   if (ctx && drumBus && metroBus) {
     drumBus.gain.setTargetAtTime(level(mix.drums), ctx.currentTime, 0.015);
     metroBus.gain.setTargetAtTime(level(mix.metro), ctx.currentTime, 0.015);
