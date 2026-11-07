@@ -457,7 +457,7 @@ export class EditorModel {
     this.showBlock(this.shownBlock);
   }
 
-  /** A minta gyakorló részlete a dalban, ahogy a diák is ismétli (groove: az első futása, legfeljebb 4 ütem;
+  /** A minta gyakorló részlete a dalban, ahogy a diák is ismétli (groove: az első futása, legfeljebb 8 ütem;
    *  fill: az előtte lévő ütemmel), a részlet ütemeinek kottájával. null, ha a minta egy ütemben sem szól. */
   practiceRange(k: string) {
     const sp = this.spans();

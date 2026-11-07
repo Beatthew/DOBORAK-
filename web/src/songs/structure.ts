@@ -123,8 +123,11 @@ interface ElementEntry {
   variants?: ElementEntry[];
 }
 
+/** egy groove gyakorlásakor ennyi ütem ismétlődik (ha a dalban ennyiszer szól egymás után): egy periódus, nem egy ütem */
+const LOOP_BARS = 8;
+
 /** A diák építőelemei: az alap minták első előfordulásuk sorrendjében, mindegyik egy ismételt ütemtartománnyal
- *  (groove: az első futása, legalább a teljes minta, legfeljebb 4 ütem; fill: az előtte lévő ütem + a fill összes üteme),
+ *  (groove: az első futása, legalább a teljes minta, legfeljebb egy 8 ütemes periódus; fill: az előtte lévő ütem + a fill összes üteme),
  *  és a variációik ugyanígy. */
 export function elements(s: Structure, patterns: Record<string, Pattern>): ElementEntry[] {
   const keys = flatKeys(s).map((r) => (refOk(patterns, r) ? splitRef(r)[0] : null));
@@ -133,7 +136,7 @@ export function elements(s: Structure, patterns: Record<string, Pattern>): Eleme
     const i = keys.indexOf(key), n = plen(patterns, key);
     if (patterns[key].type === 'fill') return [Math.max(1, i), Math.min(keys.length, i + n)];
     let j = i;
-    while (j + 1 < keys.length && keys[j + 1] === key && j - i + 1 < Math.max(n, 4)) j++;
+    while (j + 1 < keys.length && keys[j + 1] === key && j - i + 1 < Math.max(n, LOOP_BARS)) j++;
     return [i + 1, j + 1];
   };
   const entry = (k: string): ElementEntry => ({ key: k, name: patterns[k].name, len: plen(patterns, k), loop: loop(k) });
