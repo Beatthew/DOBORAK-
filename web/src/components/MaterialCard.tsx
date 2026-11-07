@@ -8,7 +8,7 @@ import { STROKES_PATH, STROKES_REF } from '../data/strokes';
 import { useI18n } from '../i18n';
 import { KIND_LABEL, openFile, type Material } from '../lib/supabase';
 import { findClip } from '../songs/clips';
-import { ClipPlayer } from './ClipPlayer';
+import { ClipPlayer, StoredClipPlayer } from './ClipPlayer';
 import { ScorePlayer } from './Score';
 
 const KIND_TONE: Record<Material['kind'], number> = { song: 0, exercise: 3, material: 1, library: 3 };
@@ -41,7 +41,7 @@ export function MaterialCard({ m, onDelete }: Props) {
       {m.note && <p className="mat-note">{text(m.note)}</p>}
       {!strokes && beats.length > 0 && (
         <div className="mat-score">
-          {clip ? <ClipPlayer clip={clip} /> : <ScorePlayer id={m.id} bars={beats} bpm={bpm} onBpm={setBpm} />}
+          {m.clip ? <StoredClipPlayer clip={m.clip} title={title} bpm={m.bpm ?? 90} /> : clip ? <ClipPlayer clip={clip} /> : <ScorePlayer id={m.id} bars={beats} bpm={bpm} onBpm={setBpm} />}
         </div>
       )}
       <div className="mat-actions">

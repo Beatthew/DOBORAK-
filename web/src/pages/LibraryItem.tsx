@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ClipPlayer } from '../components/ClipPlayer';
+import { ClipPlayer, StoredClipPlayer } from '../components/ClipPlayer';
 import { GearQuiz } from '../components/GearQuiz';
 import { ScorePlayer } from '../components/Score';
 import { StrokesLesson } from '../components/Strokes';
@@ -85,7 +85,9 @@ export function LibraryItem() {
         {item.subtitle && <p className="top-sub">{text(item.subtitle)}</p>}
       </TopBar>
       <main className="page">
-        {clip ? (
+        {item.clip ? (
+          <StoredClipPlayer clip={item.clip} title={text(item.title)} bpm={item.bpm} />
+        ) : clip ? (
           <ClipPlayer clip={clip} />
         ) : bars.length > 0 ? (
           <ScorePlayer id={item.id} bars={bars} bpm={bpm} onBpm={setBpm} />

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePlayback } from '../audio/playback';
 import { useI18n } from '../i18n';
+import { storedClipData, type ClipRef } from '../songs/clips';
 import { SongEngine } from '../songs/engine';
 import { rowSVG, setPlayhead } from '../songs/notation';
 import type { Beats, SongData } from '../songs/types';
@@ -92,4 +93,22 @@ export function ClipPlayer({ clip }: { clip: SongData }) {
       <SongMixer engine={engine} />
     </div>
   );
+}
+
+/** a tárhelyen lévő részlet (a szerkesztő „Tananyagba” gombjával készült) */
+export function StoredClipPlayer({ clip, title, bpm }: { clip: ClipRef; title: string; bpm: number }) {
+  const { pick } = useI18n();
+  const [song, setSong] = useState<SongData | null>(null);
+  const [err, setErr] = useState('');
+  useEffect(() => {
+    let alive = true;
+    storedClipData(clip, title, bpm)
+      .then((s) => alive && setSong(s))
+      .catch((e) => alive && setErr(String(e.message || e)));
+    return () => {
+      alive = false;
+    };
+  }, [clip, title, bpm]);
+  if (!song) return <p className="muted">{err || pick('Betöltés…', 'Loading…')}</p>;
+  return <ClipPlayer clip={song} />;
 }

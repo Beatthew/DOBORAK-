@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ClipPlayer } from '../components/ClipPlayer';
+import { ClipPlayer, StoredClipPlayer } from '../components/ClipPlayer';
 import { Score, ScorePlayer } from '../components/Score';
 import { Sortable } from '../components/Sortable';
 import { TopBar } from '../components/TopBar';
@@ -9,7 +9,7 @@ import { subdivisionOf, SUBDIVISIONS, toBeats, useLibrary, type ScoreBar, type S
 import { useI18n } from '../i18n';
 import { inLessonOrder, KIND_LABEL, supabase, type LessonRow, type Material, type Profile } from '../lib/supabase';
 import { findSong, playable, useSongs, type SongRow } from '../songs/store';
-import { findClip } from '../songs/clips';
+import { findClip, type ClipRef } from '../songs/clips';
 
 const READY_LESSONS = 'kesz-orak';
 const today = () => new Date().toISOString().slice(0, 10);
@@ -25,6 +25,7 @@ interface Entry {
   bpm?: number;
   /** A tananyag eredeti képe: mentéskor a diák mappájába másolódik, hogy a diák is megnyithassa. */
   image?: string | null;
+  clip?: ClipRef | null;
   fileName?: string | null;
   materialId?: string;
   position?: number | null;
@@ -53,6 +54,7 @@ function fromMaterial(m: Material, songs: SongRow[] | null): Entry {
     sub: song?.artist ?? m.note,
     bars: m.bars ?? undefined,
     bpm: m.bpm ?? undefined,
+    clip: m.clip ?? null,
     fileName: m.file_name,
     materialId: m.id,
     position: m.position,
@@ -180,6 +182,7 @@ export function LessonComposer() {
         note: e.kind === 'library' ? e.sub : '',
         bars: e.bars ?? null,
         bpm: e.bpm ?? null,
+        ...(e.clip ? { clip: e.clip } : {}),
         position: ordered.indexOf(e),
         file_path: filePath,
         file_name: filePath ? e.fileName ?? null : null,
@@ -319,7 +322,9 @@ function EntryCard({ entry: e, onRemove, onMove }: { entry: Entry; onRemove: () 
         </button>
       </header>
       <div className="composer-card-body">
-        {clip ? (
+        {e.clip ? (
+          <StoredClipPlayer clip={e.clip} title={text(e.title)} bpm={e.bpm ?? 90} />
+        ) : clip ? (
           <ClipPlayer clip={clip} />
         ) : beats.length > 0 ? (
           <ScorePlayer id={`composer:${e.key}`} bars={beats} bpm={bpm} onBpm={setBpm} />
@@ -407,6 +412,7 @@ function Browser({ cat, name, heading, base, picked, onToggle, onOpen }: Browser
             bars: i.bars,
             bpm: i.bpm,
             image: i.image_path,
+            clip: i.clip ?? null,
             fileName: i.file_name,
             preview: i.bars[0],
           }));

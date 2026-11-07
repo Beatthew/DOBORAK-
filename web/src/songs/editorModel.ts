@@ -1,4 +1,4 @@
-import { cleanStructure, type BarRef, type Pattern, type PatternType, type Structure } from './structure';
+import { cleanStructure, elements, type BarRef, type Pattern, type PatternType, type Structure } from './structure';
 
 /* A dal szerkesztője, felület nélkül: a Song Practice szerkesztőjének (index.html) logikája szó szerint.
 
@@ -455,6 +455,21 @@ export class EditorModel {
     gone.forEach((g) => delete this.patterns[g]);
     this.selPat = null;
     this.showBlock(this.shownBlock);
+  }
+
+  /** A minta gyakorló részlete a dalban, ahogy a diák is ismétli (groove: az első futása, legfeljebb 4 ütem;
+   *  fill: az előtte lévő ütemmel), a részlet ütemeinek kottájával. null, ha a minta egy ütemben sem szól. */
+  practiceRange(k: string) {
+    const sp = this.spans();
+    const s = { ...this.S, sections: this.blocks.map((b, i) => ({ name: b.name, from: sp[i].from, to: sp[i].to, tacet: b.tacet, bars: b.bars })), patterns: this.patterns };
+    const e = elements(s, this.patterns).flatMap((x) => [x, ...(x.variants ?? [])]).find((x) => x.key === k);
+    if (!e) return null;
+    const [from, to] = e.loop;
+    const score = this.flatBars().slice(from - 1, to).map((r) => {
+      const hands = this.partHands(r);
+      return { beats: this.partBeats(r) ?? ['-', '-', '-', '-'], ...(hands && hands.some((h) => /[RL]/.test(h)) ? { hands } : {}) };
+    });
+    return { from, to, score };
   }
 
   /* ---------------------------------------------------------------- visszavonás és mentés */

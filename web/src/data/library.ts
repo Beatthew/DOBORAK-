@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import type { ClipRef } from '../songs/clips';
 import type { Beats } from '../songs/types';
 import type { Fill, Groove } from '../types';
 import { fills, grooves } from './lessons';
@@ -28,6 +29,8 @@ export interface LibraryItem {
   note: string;
   image_path: string | null;
   file_name: string | null;
+  /** dalból kivágott hang (a szerkesztő „Tananyagba” gombja) */
+  clip?: ClipRef | null;
   builtin?: boolean;
 }
 

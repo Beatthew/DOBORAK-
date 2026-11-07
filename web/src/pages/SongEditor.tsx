@@ -212,6 +212,39 @@ function Editor({ row }: { row: SongRow }) {
     patchSong({ id: row.id, published: next });
   };
 
+  /* Tananyagba: a minta önálló tananyag lesz (groove → Groove-ok, fill → Fillek), a dalból kivágott hangjával:
+     a gyakorló részlete (amit a diák is ismétel) a két sávból WAV-ként a „clips” tárhelyre kerül. */
+  const toLibrary = async (k: string) => {
+    if (!supabase) return;
+    const p = model.patterns[k], r = model.practiceRange(k), name = model.pname(k);
+    if (!p) return;
+    if (!r) return setMsg({ text: pick('Ez a minta még egy ütemben sem szól: előbb tedd be a dalba (SONG fül), hogy legyen hozzá hang.', 'This pattern is not in any bar yet: place it in the song first (SONG tab) so it has audio.'), err: true });
+    if (!engine) return setMsg({ text: pick('A sávok még töltődnek.', 'The tracks are still loading.'), err: true });
+    const cat = p.type === 'fill' ? 'fillek' : 'grooveok';
+    if (!confirm(pick(
+      `„${name}” a ${p.type === 'fill' ? 'Fillek' : 'Groove-ok'} közé kerül tananyagként, a dal ${r.from}–${r.to}. ütemének hangjával. Mehet?`,
+      `"${name}" goes to ${p.type === 'fill' ? 'Fills' : 'Grooves'} in the library, with the audio of bars ${r.from}–${r.to}. Go ahead?`,
+    ))) return;
+    if (!(await saveNow())) return;
+    setMsg({ text: pick('hang kivágása és feltöltése…', 'cutting and uploading audio…') });
+    const [t0, t1] = engine.timing.range(r.from, r.to);
+    const audio = engine.exportRange(t0, t1), id = crypto.randomUUID();
+    for (const [ch, blob] of Object.entries(audio)) {
+      const { error } = await supabase.storage.from('clips').upload(`${id}/${ch.toLowerCase()}.wav`, blob, { contentType: 'audio/wav', upsert: true });
+      if (error) return setMsg({ text: `${pick('Feltöltési hiba', 'Upload failed')}: ${error.message}`, err: true });
+    }
+    const bars = Array.from({ length: model.plen(k) }, (_, i) => {
+      const h = p.hands?.slice(i * 4, i * 4 + 4);
+      return { beats: p.beats.slice(i * 4, i * 4 + 4), ...(h && h.some((x) => /[RL]/.test(x)) ? { hands: h } : {}) };
+    });
+    const { error } = await supabase.from('library_items').insert({
+      id, category: cat, title: name, subtitle: title, bpm: model.S.bpm, bars, note: '',
+      clip: { path: id, song: row.id, from: r.from, to: r.to, duration: Math.round((t1 - t0) * 1000) / 1000, score: r.score },
+    });
+    if (error) return setMsg({ text: error.message, err: true });
+    setMsg({ text: pick(`Bekerült a tananyagba: ${name} (${p.type === 'fill' ? 'Fillek' : 'Groove-ok'}, ${r.from}–${r.to}. ütem hangjával)`, `Added to the library: ${name} (${p.type === 'fill' ? 'Fills' : 'Grooves'}, with bars ${r.from}–${r.to})`) });
+  };
+
   const practice = async () => {
     await saveNow();
     nav(songPath(row.id), { state: { back: `/tananyag/dalok/${encodeURIComponent(row.id)}/szerkesztes` } });
@@ -320,7 +353,7 @@ function Editor({ row }: { row: SongRow }) {
           ) : (
             <Chips model={model} commit={commit} bump={bump} />
           )}
-          <PatternEditor model={model} commit={commit} />
+          <PatternEditor model={model} commit={commit} onLibrary={(k) => void toLibrary(k)} />
         </section>
 
         <SongMixer engine={engine} />
@@ -555,7 +588,7 @@ function Strip({ model, shownBar, commit, onPick, onCut }: { model: EditorModel;
 
 /* ---------------------------------------------------------------- a mintaszerkesztő */
 
-function PatternEditor({ model, commit }: { model: EditorModel; commit: (fn: () => void) => void }) {
+function PatternEditor({ model, commit, onLibrary }: { model: EditorModel; commit: (fn: () => void) => void; onLibrary: (k: string) => void }) {
   const { pick } = useI18n();
   const grid = useRef<HTMLDivElement>(null);
   const noteDrag = useRef<{ cell: HTMLElement; x: number; y: number; moved: boolean } | null>(null);
@@ -609,6 +642,7 @@ function PatternEditor({ model, commit }: { model: EditorModel; commit: (fn: () 
           </span>
         )}
         {song && p.variantOf && <button className="btn small" onClick={() => commit(() => model.toBase())} title={pick('Ez az ütem újra az alap elemet használja', 'This bar uses the core part again')}>{pick('VISSZA AZ ALAPRA', 'BACK TO CORE')}</button>}
+        <button className="btn small" onClick={() => onLibrary(k)} title={pick('Önálló tananyag lesz (Groove-ok / Fillek), a dalból kivágott hangjával', 'Becomes a library item (Grooves / Fills) with its audio cut from the song')}>{pick('TANANYAGBA', 'TO LIBRARY')}</button>
         {!song && <button className="btn small" onClick={() => commit(() => model.duplicate())} title={pick('Új, önálló elem ennek a másolatából', 'A new, separate part copied from this one')}>{pick('MÁSOLAT', 'COPY')}</button>}
         {!song && (
           <button className="btn small" onClick={() => {

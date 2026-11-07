@@ -44,6 +44,8 @@ export interface Material {
   /** A tananyagból kiválasztott tétel kottája (másolat, a diák nem látja a tananyag tábláit). */
   bars: { beats: string[]; hands?: string[] }[] | null;
   bpm: number | null;
+  /** dalból kivágott hang, a tananyag-tételből másolva */
+  clip?: import('../songs/clips').ClipRef | null;
   /** Hányadik az órán belül; null, ami még nem kapott helyet (az a végére kerül, felvétel szerint). */
   position?: number | null;
   created_at: string;
