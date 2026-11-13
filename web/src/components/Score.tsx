@@ -47,24 +47,40 @@ interface PlayerProps {
   /** a tempócsúszka tartománya (alapból 40–200) */
   min?: number | null;
   max?: number | null;
+  /** a kotta vagy a tempó változásakor a futó lejátszás az újjal folytatódik (különben leáll) */
+  restartOnChange?: boolean;
 }
 
 /** Kotta lejátszógombbal és tempóval: visszahallgatható, a lejátszófej követi a kottát. */
-export function ScorePlayer({ id, bars, bpm, onBpm, min, max }: PlayerProps) {
+export function ScorePlayer({ id, bars, bpm, onBpm, min, max, restartOnChange }: PlayerProps) {
   const { t, pick } = useI18n();
   const { playingId, step, toggle, stop } = usePlayback();
   const playId = `score:${id}`;
   const playing = playingId === playId;
   const [mix, setMix] = usePracticeMix(playing);
+  const restart = useRef(false);
+  const play = () => {
+    setPracticeMix(mix);
+    toggle(playId, scoreBars(bars), { bpm, loop: true, div: SCORE_DIV, track: true });
+  };
   useEffect(() => {
     void preloadSamples();
     return stop;
   }, [stop]);
-  // A kotta vagy a tempó változására a futó lejátszás leáll: a következő indítás már az újat játssza.
+  // A kotta vagy a tempó változására a futó lejátszás leáll: a következő indítás már az újat játssza
+  // (restartOnChange esetén magától újraindul, amint a leállás lefutott).
   useEffect(() => {
-    if (playing) stop();
+    if (!playing) return;
+    restart.current = !!restartOnChange;
+    stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bars, bpm]);
+  useEffect(() => {
+    if (playingId !== null || !restart.current) return;
+    restart.current = false;
+    play();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playingId]);
 
   return (
     <section className="score-card">
@@ -74,10 +90,7 @@ export function ScorePlayer({ id, bars, bpm, onBpm, min, max }: PlayerProps) {
           type="button"
           className="play-btn"
           aria-label={playing ? t.stop : t.play}
-          onClick={() => {
-            setPracticeMix(mix);
-            toggle(playId, scoreBars(bars), { bpm, loop: true, div: SCORE_DIV, track: true });
-          }}
+          onClick={play}
         >
           {playing ? <StopIcon /> : <PlayIcon />}
         </button>

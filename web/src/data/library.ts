@@ -47,6 +47,7 @@ export const CATEGORIES: Category[] = [
   { id: 'technika', name: 'Technika' },
   { id: 'transzkripciok', name: 'Transzkripciók' },
   { id: 'ritmusgyakorlatok', name: 'Ritmusgyakorlatok' },
+  { id: 'fuggetlenites', name: 'Függetlenítés' },
 ];
 
 export const toBeats = (bar: ScoreBar): Beats => Object.assign([...bar.beats], bar.hands ? { hands: bar.hands } : {});
@@ -123,6 +124,19 @@ const TAUGHT: LibraryItem[] = [
     bpm: 70,
     // csak a tile előnézete: a teljes anyag a components/Strokes.tsx-ben van
     bars: [{ beats: ['s s', 's s', 's s', 's s'], hands: ['R L', 'R L', 'R L', 'R L'] }],
+    note: '',
+    image_path: null,
+    file_name: null,
+    builtin: true,
+  },
+  {
+    id: 'labdob-permutaciok',
+    category: 'fuggetlenites',
+    title: 'Lábdob permutációk',
+    subtitle: '15 lábdob-ritmus egy groove alá',
+    bpm: 70,
+    // csak a tile előnézete (a lábdob nélküli groove): a teljes anyag a components/KickPermutations.tsx-ben van
+    bars: [{ beats: ['h h', 'h+s h', 'h h', 'h+s h'] }],
     note: '',
     image_path: null,
     file_name: null,

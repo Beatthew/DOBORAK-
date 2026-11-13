@@ -19,6 +19,8 @@ import { StudentLesson } from './pages/StudentLesson';
 import { GearQuizPage } from './pages/GearQuizPage';
 import { GEAR_PATH } from './data/gear';
 import { STROKES_PATH } from './data/strokes';
+import { KICK_PERMS_PATH } from './data/kickPermutations';
+import { KickPermutationsPage } from './pages/KickPermutationsPage';
 import { Students } from './pages/Students';
 import { TeacherHome } from './pages/TeacherHome';
 import { TeacherStudent } from './pages/TeacherStudent';
@@ -72,6 +74,7 @@ export function App() {
                 <Route path="/ora/:lessonId" element={<Gate><StudentLesson /></Gate>} />
                 <Route path={STROKES_PATH} element={<Gate><StrokesPage /></Gate>} />
                 <Route path={GEAR_PATH} element={<Gate><GearQuizPage /></Gate>} />
+                <Route path={KICK_PERMS_PATH} element={<Gate><KickPermutationsPage /></Gate>} />
                 <Route path="/diak/:id" element={<Gate teacher><TeacherStudent /></Gate>} />
                 <Route path="/diak/:id/uj-ora" element={<Gate teacher><LessonComposer /></Gate>} />
                 <Route path="/diak/:id/ora/:lessonId" element={<Gate teacher><LessonComposer /></Gate>} />

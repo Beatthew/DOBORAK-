@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { findExercise, songPath } from '../data/catalog';
 import { findSong, useSongs } from '../songs/store';
 import { GEAR_PATH, GEAR_REF } from '../data/gear';
+import { KICK_PERMS_PATH, KICK_PERMS_REF } from '../data/kickPermutations';
 import { STROKES_PATH, STROKES_REF } from '../data/strokes';
 import { useI18n } from '../i18n';
 import { KIND_LABEL, openFile, type Material } from '../lib/supabase';
@@ -26,7 +27,8 @@ export function MaterialTile({ m, tone, back }: Props) {
   const strokes = m.ref === STROKES_REF;
   const targets = [song || ex, m.file_path, m.link_url].filter(Boolean).length;
   const gear = m.ref === GEAR_REF;
-  if (!strokes && !gear && (targets !== 1 || m.bars?.length)) return <MaterialCard m={m} />;
+  const perms = m.ref === KICK_PERMS_REF;
+  if (!strokes && !gear && !perms && (targets !== 1 || m.bars?.length)) return <MaterialCard m={m} />;
 
   const cls = `lesson-card tone-${tone}`;
   const kind = text(KIND_LABEL[m.kind]);
@@ -41,6 +43,7 @@ export function MaterialTile({ m, tone, back }: Props) {
 
   if (strokes) return <Link className={cls} to={STROKES_PATH} state={{ back }}>{body}</Link>;
   if (gear) return <Link className={cls} to={GEAR_PATH} state={{ back }}>{body}</Link>;
+  if (perms) return <Link className={cls} to={KICK_PERMS_PATH} state={{ back }}>{body}</Link>;
   if (song) return <Link className={cls} to={songPath(song.id)} state={{ back }}>{body}</Link>;
   if (ex) return <Link className={cls} to={`/lesson/${ex.ref}`} state={{ back }}>{body}</Link>;
   if (m.file_path) return <button className={cls} aria-label={`${pick('Megnyitás', 'Open')}: ${m.file_name || kind}`} onClick={() => openFile(m.file_path!)}>{body}</button>;

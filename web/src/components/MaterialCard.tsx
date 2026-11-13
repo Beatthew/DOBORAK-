@@ -4,6 +4,7 @@ import { findExercise, songPath } from '../data/catalog';
 import { findSong, useSongs } from '../songs/store';
 import { toBeats } from '../data/library';
 import { GEAR_PATH, GEAR_REF } from '../data/gear';
+import { KICK_PERMS_PATH, KICK_PERMS_REF } from '../data/kickPermutations';
 import { STROKES_PATH, STROKES_REF } from '../data/strokes';
 import { useI18n } from '../i18n';
 import { KIND_LABEL, openFile, type Material } from '../lib/supabase';
@@ -22,7 +23,7 @@ interface Props {
 /** Egy kiadott anyag: dal → a dal gyakorló oldala, gyakorlat → kész óra, fájl → letöltés, link → megnyitás. */
 export function MaterialCard({ m, onDelete }: Props) {
   const { pick, text, locale } = useI18n();
-  const strokes = m.ref === STROKES_REF;
+  const strokes = m.ref === STROKES_REF || m.ref === KICK_PERMS_REF;
   const clip = m.kind === 'library' ? findClip(m.ref) : undefined;
   const songs = useSongs();
   const song = m.kind === 'song' ? findSong(songs, m.ref) : undefined;
@@ -45,7 +46,8 @@ export function MaterialCard({ m, onDelete }: Props) {
         </div>
       )}
       <div className="mat-actions">
-        {strokes && <Link className="btn primary" to={STROKES_PATH}>{pick('Megnyitás', 'Open')}</Link>}
+        {m.ref === KICK_PERMS_REF && <Link className="btn primary" to={KICK_PERMS_PATH}>{pick('Megnyitás', 'Open')}</Link>}
+        {m.ref === STROKES_REF && <Link className="btn primary" to={STROKES_PATH}>{pick('Megnyitás', 'Open')}</Link>}
         {m.ref === GEAR_REF && <Link className="btn primary" to={GEAR_PATH}>{pick('Megnyitás', 'Open')}</Link>}
         {song && <Link className="btn primary" to={songPath(song.id)}>{pick('Gyakorlás', 'Practice')}</Link>}
         {ex && <Link className="btn primary" to={`/lesson/${ex.ref}`}>{pick('Megnyitás', 'Open')}</Link>}

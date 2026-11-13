@@ -3668,3 +3668,61 @@ label.form textarea.code {
   display: flex;
   gap: 6px;
 }
+
+/* ---------- Lábdob permutációk (függetlenítés) ---------- */
+
+.kick-perms {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.perm-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.perm-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 64px;
+  padding: 6px 10px;
+  border: var(--line) solid var(--track);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.perm-btn b {
+  flex: none;
+  width: 1.2em;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.perm-btn:hover {
+  border-color: var(--ink);
+}
+
+.perm-btn.on {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--mint);
+}
+
+.perm-rhythm {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+}
+
+@media (min-width: 760px) {
+  .perm-list {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}

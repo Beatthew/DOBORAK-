@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ClipPlayer, StoredClipPlayer } from '../components/ClipPlayer';
 import { GearQuiz } from '../components/GearQuiz';
+import { KickPermutations } from '../components/KickPermutations';
 import { ScorePlayer } from '../components/Score';
 import { StrokesLesson } from '../components/Strokes';
 import { TopBar } from '../components/TopBar';
 import { toBeats, useLibrary } from '../data/library';
 import { GEAR_REF } from '../data/gear';
+import { KICK_PERMS_REF } from '../data/kickPermutations';
 import { STROKES_REF } from '../data/strokes';
 import { useI18n } from '../i18n';
 import { supabase } from '../lib/supabase';
@@ -61,6 +63,19 @@ export function LibraryItem() {
         </TopBar>
         <main className="page">
           <StrokesLesson />
+        </main>
+      </>
+    );
+  }
+
+  if (`${item.category}/${item.id}` === KICK_PERMS_REF) {
+    return (
+      <>
+        <TopBar title={text(item.title)} backTo={`/tananyag/${cat}`} backLabel={backLabel}>
+          <p className="top-sub">{text(item.subtitle)}</p>
+        </TopBar>
+        <main className="page">
+          <KickPermutations />
         </main>
       </>
     );
