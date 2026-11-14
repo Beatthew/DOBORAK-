@@ -150,7 +150,7 @@ const TAUGHT: LibraryItem[] = [
     category: 'dalok',
     title: 'Szólambontás',
     subtitle: 'Elég Ha Élsz – a groove szólamonként és párosával',
-    bpm: 90,
+    bpm: 70,
     song: VOICE_SPLIT_SONG,
     // csak az előnézet: a teljes anyag a components/VoiceSplit.tsx-ben van
     bars: [VOICE_SPLIT_GROOVE],

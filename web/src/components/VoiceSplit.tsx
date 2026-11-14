@@ -8,7 +8,7 @@ import { ScorePlayer } from './Score';
 export function VoiceSplit() {
   const { pick } = useI18n();
   const [picked, setPicked] = useState<VoiceSet>(VOICE_SETS[0]);
-  const [bpm, setBpm] = useState(90);
+  const [bpm, setBpm] = useState(70);
   const bars = useMemo(() => [toBeats(splitBar(VOICE_SPLIT_GROOVE, picked.voices))], [picked]);
   const name = (s: VoiceSet) =>
     s.voices.length === 3 ? pick('Teljes groove', 'Full groove') : s.voices.map((v) => pick(...VOICE_NAME[v])).join(' + ');
