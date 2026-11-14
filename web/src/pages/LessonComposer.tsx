@@ -389,7 +389,7 @@ function Browser({ cat, name, heading, base, picked, onToggle, onOpen }: Browser
   if (cat === 'kategoriak') {
     const all = [...categories, { id: READY_LESSONS, name: 'Kész órák' }];
     const size = (id: string) =>
-      id === 'dalok' ? songs.length : id === READY_LESSONS ? exerciseList.length : items.filter((i) => i.category === id).length;
+      id === 'dalok' ? songs.length + items.filter((i) => i.category === id).length : id === READY_LESSONS ? exerciseList.length : items.filter((i) => i.category === id).length;
     return (
       <>
         <TopBar title={pick('Tananyag', 'Library')} backTo={base} backLabel={heading} />
@@ -412,7 +412,11 @@ function Browser({ cat, name, heading, base, picked, onToggle, onOpen }: Browser
   const shown = filter ? library.filter((i) => subdivisionOf(i.bars) === filter) : library;
   const entries: (Entry & { preview?: ScoreBar })[] =
     cat === 'dalok'
-      ? songs.map((s) => ({ key: `song:${s.id}`, kind: 'song', ref: s.id, title: s.title, sub: s.artist }))
+      ? [
+          ...songs.map((s) => ({ key: `song:${s.id}`, kind: 'song' as const, ref: s.id, title: s.title, sub: s.artist })),
+          // a dalokhoz tartozó gyakorlatok (pl. szólambontás): tananyag-tételként kerülnek az órába
+          ...library.map((i) => ({ key: `library:${i.category}/${i.id}`, kind: 'library' as const, ref: `${i.category}/${i.id}`, title: i.title, sub: i.subtitle, bars: i.bars, bpm: i.bpm, preview: i.bars[0] })),
+        ]
       : cat === READY_LESSONS
         ? exerciseList.map((x) => ({ key: `exercise:${x.ref}`, kind: 'exercise', ref: x.ref, title: x.title, sub: `${x.bpm} BPM` }))
         : shown.map((i) => ({
@@ -438,7 +442,7 @@ function Browser({ cat, name, heading, base, picked, onToggle, onOpen }: Browser
     <>
       <TopBar title={title} backTo={`${base}?t=kategoriak`} backLabel={pick('Tananyag', 'Library')} />
       <main className="page">
-        {library.some((i) => i.bars.length > 0) && (
+        {cat !== 'dalok' && library.some((i) => i.bars.length > 0) && (
           <nav className="filters" aria-label={pick('Szűrők', 'Filters')}>
             <span>{pick('Szűrők:', 'Filters:')}</span>
             <button className={filter ? '' : 'on'} onClick={() => setFilter(null)}>

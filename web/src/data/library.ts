@@ -4,6 +4,7 @@ import type { ClipRef } from '../songs/clips';
 import type { Beats } from '../songs/types';
 import type { Fill, Groove } from '../types';
 import { fills, grooves } from './lessons';
+import { VOICE_SPLIT_GROOVE, VOICE_SPLIT_SONG } from './voiceSplit';
 
 /* A tananyag: bővíthető kategóriák, bennük tételek. A beépített kategóriák és az eddig tanított groove-ok / fillek
    itt, a kódban élnek; amit a tanár az appban hozzáad, az a Supabase-ben (supabase/004_tananyag.sql). */
@@ -34,6 +35,8 @@ export interface LibraryItem {
   bpm_max?: number | null;
   /** dalból kivágott hang (a szerkesztő „Tananyagba” gombja) */
   clip?: ClipRef | null;
+  /** a Dalok között ennek a dalnak a kártyáján jelenik meg (songs.id) */
+  song?: string;
   builtin?: boolean;
 }
 
@@ -137,6 +140,20 @@ const TAUGHT: LibraryItem[] = [
     bpm: 70,
     // csak a tile előnézete (a lábdob nélküli groove): a teljes anyag a components/KickPermutations.tsx-ben van
     bars: [{ beats: ['h h', 'h+s h', 'h h', 'h+s h'] }],
+    note: '',
+    image_path: null,
+    file_name: null,
+    builtin: true,
+  },
+  {
+    id: 'eleg-ha-elsz-szolamok',
+    category: 'dalok',
+    title: 'Szólambontás',
+    subtitle: 'Elég Ha Élsz – a groove szólamonként és párosával',
+    bpm: 90,
+    song: VOICE_SPLIT_SONG,
+    // csak az előnézet: a teljes anyag a components/VoiceSplit.tsx-ben van
+    bars: [VOICE_SPLIT_GROOVE],
     note: '',
     image_path: null,
     file_name: null,

@@ -3,12 +3,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ClipPlayer, StoredClipPlayer } from '../components/ClipPlayer';
 import { GearQuiz } from '../components/GearQuiz';
 import { KickPermutations } from '../components/KickPermutations';
+import { VoiceSplit } from '../components/VoiceSplit';
 import { ScorePlayer } from '../components/Score';
 import { StrokesLesson } from '../components/Strokes';
 import { TopBar } from '../components/TopBar';
 import { toBeats, useLibrary } from '../data/library';
 import { GEAR_REF } from '../data/gear';
 import { KICK_PERMS_REF } from '../data/kickPermutations';
+import { VOICE_SPLIT_REF } from '../data/voiceSplit';
 import { STROKES_REF } from '../data/strokes';
 import { useI18n } from '../i18n';
 import { supabase } from '../lib/supabase';
@@ -68,14 +70,14 @@ export function LibraryItem() {
     );
   }
 
-  if (`${item.category}/${item.id}` === KICK_PERMS_REF) {
+  if (`${item.category}/${item.id}` === KICK_PERMS_REF || `${item.category}/${item.id}` === VOICE_SPLIT_REF) {
     return (
       <>
         <TopBar title={text(item.title)} backTo={`/tananyag/${cat}`} backLabel={backLabel}>
           <p className="top-sub">{text(item.subtitle)}</p>
         </TopBar>
         <main className="page">
-          <KickPermutations />
+          {`${item.category}/${item.id}` === VOICE_SPLIT_REF ? <VoiceSplit /> : <KickPermutations />}
         </main>
       </>
     );

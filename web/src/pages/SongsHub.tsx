@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { TopBar } from '../components/TopBar';
 import { songPath } from '../data/catalog';
+import { useLibrary, type LibraryItem } from '../data/library';
 import { useI18n } from '../i18n';
 import { supabase } from '../lib/supabase';
 import { coverUrl, dropSong, patchSong, reloadSongs, songSummary, useSongs, type SongRow, type SongStatus } from '../songs/store';
@@ -24,6 +25,7 @@ const STATUS: Record<SongStatus, [string, string]> = {
 export function SongsHub() {
   const { pick } = useI18n();
   const songs = useSongs();
+  const { items } = useLibrary();
   const [link, setLink] = useState('');
   const [msg, setMsg] = useState<{ text: string; err?: boolean } | null>(null);
   const [workerSeen, setWorkerSeen] = useState<number | null>(null);
@@ -101,13 +103,13 @@ export function SongsHub() {
             {folders.map((f) => (
               <section key={f} className="hub-folder">
                 <h2>{f}</h2>
-                <SongGrid songs={songs.filter((s) => s.folder === f)} folders={folders} />
+                <SongGrid songs={songs.filter((s) => s.folder === f)} folders={folders} items={items} />
               </section>
             ))}
             {(loose.length > 0 || !folders.length) && (
               <section className="hub-folder">
                 {folders.length > 0 && <h2>{pick('Többi dal', 'Other songs')}</h2>}
-                {loose.length ? <SongGrid songs={loose} folders={folders} /> : <p className="muted">{pick('Még nincs dal. Adj be fent egy YouTube linket.', 'No songs yet. Paste a YouTube link above.')}</p>}
+                {loose.length ? <SongGrid songs={loose} folders={folders} items={items} /> : <p className="muted">{pick('Még nincs dal. Adj be fent egy YouTube linket.', 'No songs yet. Paste a YouTube link above.')}</p>}
               </section>
             )}
           </>
@@ -121,18 +123,18 @@ export function SongsHub() {
   );
 }
 
-function SongGrid({ songs, folders }: { songs: SongRow[]; folders: string[] }) {
+function SongGrid({ songs, folders, items }: { songs: SongRow[]; folders: string[]; items: LibraryItem[] }) {
   return (
     <div className="hub-grid">
       {songs.map((s, i) => (
-        <SongCard key={s.id} s={s} tone={i % 2} folders={folders} />
+        <SongCard key={s.id} s={s} tone={i % 2} folders={folders} exercises={items.filter((x) => x.category === 'dalok' && x.song === s.id)} />
       ))}
     </div>
   );
 }
 
-function SongCard({ s, tone, folders }: { s: SongRow; tone: number; folders: string[] }) {
-  const { pick } = useI18n();
+function SongCard({ s, tone, folders, exercises }: { s: SongRow; tone: number; folders: string[]; exercises: LibraryItem[] }) {
+  const { pick, text } = useI18n();
   const cover = coverUrl(s);
   const ready = s.status === 'done' && !!s.structure;
   const title = s.title || s.video_id || s.id;
@@ -205,6 +207,17 @@ function SongCard({ s, tone, folders }: { s: SongRow; tone: number; folders: str
             {pick('Törlés', 'Delete')}
           </button>
         </div>
+        {exercises.length > 0 && (
+          <nav className="hub-exercises" aria-label={pick('Gyakorlatok a dalhoz', 'Exercises for the song')}>
+            <span>{pick('Gyakorlatok', 'Exercises')}</span>
+            {exercises.map((x) => (
+              <Link key={x.id} to={`/tananyag/dalok/${x.id}`}>
+                <b>{text(x.title)}</b>
+                {x.subtitle && <small>{text(x.subtitle)}</small>}
+              </Link>
+            ))}
+          </nav>
+        )}
       </div>
     </article>
   );
