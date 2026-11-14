@@ -160,6 +160,19 @@ const TAUGHT: LibraryItem[] = [
     builtin: true,
   },
   {
+    id: 'ritmusskala',
+    category: 'ritmusgyakorlatok',
+    title: 'Ritmusskála',
+    subtitle: 'Negyedek, nyolcadok, tizenhatodok váltott kézzel · Loop',
+    bpm: 70,
+    // csak a tile előnézete: a teljes anyag a components/RhythmScale.tsx-ben van
+    bars: [{ beats: ['s', 's s', 's s s s', 's s s s'], hands: ['R', 'R L', 'R L R L', 'R L R L'] }],
+    note: '',
+    image_path: null,
+    file_name: null,
+    builtin: true,
+  },
+  {
     id: 'gear-kviz',
     category: 'hangszerismeret',
     title: 'Gear kvíz',

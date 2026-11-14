@@ -23,6 +23,8 @@ import { KICK_PERMS_PATH } from './data/kickPermutations';
 import { KickPermutationsPage } from './pages/KickPermutationsPage';
 import { VOICE_SPLIT_PATH } from './data/voiceSplit';
 import { VoiceSplitPage } from './pages/VoiceSplitPage';
+import { RHYTHM_SCALE_PATH } from './data/rhythmScale';
+import { RhythmScalePage } from './pages/RhythmScalePage';
 import { Students } from './pages/Students';
 import { TeacherHome } from './pages/TeacherHome';
 import { TeacherStudent } from './pages/TeacherStudent';
@@ -78,6 +80,7 @@ export function App() {
                 <Route path={GEAR_PATH} element={<Gate><GearQuizPage /></Gate>} />
                 <Route path={KICK_PERMS_PATH} element={<Gate><KickPermutationsPage /></Gate>} />
                 <Route path={VOICE_SPLIT_PATH} element={<Gate><VoiceSplitPage /></Gate>} />
+                <Route path={RHYTHM_SCALE_PATH} element={<Gate><RhythmScalePage /></Gate>} />
                 <Route path="/diak/:id" element={<Gate teacher><TeacherStudent /></Gate>} />
                 <Route path="/diak/:id/uj-ora" element={<Gate teacher><LessonComposer /></Gate>} />
                 <Route path="/diak/:id/ora/:lessonId" element={<Gate teacher><LessonComposer /></Gate>} />

@@ -6,6 +6,7 @@ import { GEAR_PATH, GEAR_REF } from '../data/gear';
 import { KICK_PERMS_PATH, KICK_PERMS_REF } from '../data/kickPermutations';
 import { STROKES_PATH, STROKES_REF } from '../data/strokes';
 import { VOICE_SPLIT_PATH, VOICE_SPLIT_REF } from '../data/voiceSplit';
+import { RHYTHM_SCALE_PATH, RHYTHM_SCALE_REF } from '../data/rhythmScale';
 import { useI18n } from '../i18n';
 import { KIND_LABEL, openFile, type Material } from '../lib/supabase';
 import { MaterialCard } from './MaterialCard';
@@ -30,7 +31,8 @@ export function MaterialTile({ m, tone, back }: Props) {
   const gear = m.ref === GEAR_REF;
   const perms = m.ref === KICK_PERMS_REF;
   const split = m.ref === VOICE_SPLIT_REF;
-  if (!strokes && !gear && !perms && !split && (targets !== 1 || m.bars?.length)) return <MaterialCard m={m} />;
+  const scale = m.ref === RHYTHM_SCALE_REF;
+  if (!strokes && !gear && !perms && !split && !scale && (targets !== 1 || m.bars?.length)) return <MaterialCard m={m} />;
 
   const cls = `lesson-card tone-${tone}`;
   const kind = text(KIND_LABEL[m.kind]);
@@ -45,6 +47,7 @@ export function MaterialTile({ m, tone, back }: Props) {
 
   if (strokes) return <Link className={cls} to={STROKES_PATH} state={{ back }}>{body}</Link>;
   if (gear) return <Link className={cls} to={GEAR_PATH} state={{ back }}>{body}</Link>;
+  if (scale) return <Link className={cls} to={RHYTHM_SCALE_PATH} state={{ back }}>{body}</Link>;
   if (split) return <Link className={cls} to={VOICE_SPLIT_PATH} state={{ back }}>{body}</Link>;
   if (perms) return <Link className={cls} to={KICK_PERMS_PATH} state={{ back }}>{body}</Link>;
   if (song) return <Link className={cls} to={songPath(song.id)} state={{ back }}>{body}</Link>;

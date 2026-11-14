@@ -3833,3 +3833,98 @@ label.form textarea.code {
 .hub-exercises small {
   opacity: 0.75;
 }
+
+/* ---------- Ritmusskála ---------- */
+
+.rhythm-scale {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.score-caption {
+  margin: 0 0 6px;
+  color: var(--mint);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.scale-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.scale-pills button {
+  min-height: 44px;
+  padding: 8px 18px;
+  border: var(--line) solid var(--track);
+  border-radius: 99px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.scale-pills button:hover {
+  border-color: var(--ink);
+}
+
+.scale-pills button.on {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--mint);
+}
+
+.scale-pills .loop-pill {
+  margin-left: auto;
+}
+
+.scale-kick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.scale-kick input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--ink);
+}
+
+.loop-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: var(--line) solid var(--track);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.loop-panel p {
+  margin: 0 0 4px;
+}
+
+.loop-row {
+  display: grid;
+  grid-template-columns: 1fr 44px 52px 44px;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.loop-row b {
+  text-align: center;
+  font-size: 18px;
+}
+
+.loop-row .btn {
+  min-height: 40px;
+  font-size: 20px;
+}

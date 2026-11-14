@@ -7,6 +7,7 @@ import { GEAR_PATH, GEAR_REF } from '../data/gear';
 import { KICK_PERMS_PATH, KICK_PERMS_REF } from '../data/kickPermutations';
 import { STROKES_PATH, STROKES_REF } from '../data/strokes';
 import { VOICE_SPLIT_PATH, VOICE_SPLIT_REF } from '../data/voiceSplit';
+import { RHYTHM_SCALE_PATH, RHYTHM_SCALE_REF } from '../data/rhythmScale';
 import { useI18n } from '../i18n';
 import { KIND_LABEL, openFile, type Material } from '../lib/supabase';
 import { findClip } from '../songs/clips';
@@ -24,7 +25,7 @@ interface Props {
 /** Egy kiadott anyag: dal → a dal gyakorló oldala, gyakorlat → kész óra, fájl → letöltés, link → megnyitás. */
 export function MaterialCard({ m, onDelete }: Props) {
   const { pick, text, locale } = useI18n();
-  const strokes = m.ref === STROKES_REF || m.ref === KICK_PERMS_REF || m.ref === VOICE_SPLIT_REF;
+  const strokes = m.ref === STROKES_REF || m.ref === KICK_PERMS_REF || m.ref === VOICE_SPLIT_REF || m.ref === RHYTHM_SCALE_REF;
   const clip = m.kind === 'library' ? findClip(m.ref) : undefined;
   const songs = useSongs();
   const song = m.kind === 'song' ? findSong(songs, m.ref) : undefined;
@@ -47,6 +48,7 @@ export function MaterialCard({ m, onDelete }: Props) {
         </div>
       )}
       <div className="mat-actions">
+        {m.ref === RHYTHM_SCALE_REF && <Link className="btn primary" to={RHYTHM_SCALE_PATH}>{pick('Megnyitás', 'Open')}</Link>}
         {m.ref === VOICE_SPLIT_REF && <Link className="btn primary" to={VOICE_SPLIT_PATH}>{pick('Megnyitás', 'Open')}</Link>}
         {m.ref === KICK_PERMS_REF && <Link className="btn primary" to={KICK_PERMS_PATH}>{pick('Megnyitás', 'Open')}</Link>}
         {m.ref === STROKES_REF && <Link className="btn primary" to={STROKES_PATH}>{pick('Megnyitás', 'Open')}</Link>}

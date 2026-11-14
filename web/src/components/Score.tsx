@@ -49,10 +49,14 @@ interface PlayerProps {
   max?: number | null;
   /** a kotta vagy a tempó változásakor a futó lejátszás az újjal folytatódik (különben leáll) */
   restartOnChange?: boolean;
+  /** több ütemnél mindig csak az épp szóló ütem látszik (pl. a ritmusskála loopja) */
+  follow?: boolean;
+  /** felirat a kotta fölött; follow módban az épp látszó ütem sorszámával (0-tól) */
+  caption?: (bar: number) => string;
 }
 
 /** Kotta lejátszógombbal és tempóval: visszahallgatható, a lejátszófej követi a kottát. */
-export function ScorePlayer({ id, bars, bpm, onBpm, min, max, restartOnChange }: PlayerProps) {
+export function ScorePlayer({ id, bars, bpm, onBpm, min, max, restartOnChange, follow, caption }: PlayerProps) {
   const { t, pick } = useI18n();
   const { playingId, step, toggle, stop } = usePlayback();
   const playId = `score:${id}`;
@@ -82,9 +86,14 @@ export function ScorePlayer({ id, bars, bpm, onBpm, min, max, restartOnChange }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playingId]);
 
+  const cur = follow && playing && step > 0 ? Math.floor((step - 1) / STEPS_PER_BAR) % bars.length : 0;
+  const shown = useMemo(() => (follow ? [bars[cur]] : bars), [follow, bars, cur]);
+  const shownStep = !playing ? 0 : follow && step > 0 ? step - cur * STEPS_PER_BAR : step;
+
   return (
     <section className="score-card">
-      <Score bars={bars} perRow={window.innerWidth < 600 ? 1 : 2} step={playing ? step : 0} />
+      {caption && <p className="score-caption">{caption(cur)}</p>}
+      <Score bars={shown} perRow={window.innerWidth < 600 ? 1 : 2} step={shownStep} />
       <div className="transport">
         <button
           type="button"
