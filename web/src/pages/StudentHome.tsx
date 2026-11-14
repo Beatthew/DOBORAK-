@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PencilIcon } from '../components/Icons';
 import { MaterialCard } from '../components/MaterialCard';
@@ -23,6 +23,8 @@ export function StudentHome() {
   const [tab, setTab] = useState<Tab>(() => (sessionStorage.getItem('tab') as Tab) || 'lessons');
   const [lessons, setLessons] = useState<LessonRow[] | null>(null);
   const [materials, setMaterials] = useState<Material[]>([]);
+  // ami betöltéskor még nem volt látva: ezen a látogatáson végig „Új” marad, akkor is, ha közben látottnak jelöltük
+  const [fresh, setFresh] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!supabase || !profile) return;
@@ -31,7 +33,9 @@ export function StudentHome() {
       supabase.from('materials').select('*').eq('student_id', profile.id).order('created_at', { ascending: false }),
     ]).then(([l, m]) => {
       setLessons((l.data as LessonRow[]) ?? []);
-      setMaterials((m.data as Material[]) ?? []);
+      const list = (m.data as Material[]) ?? [];
+      setMaterials(list);
+      setFresh(new Set(list.filter((x) => !x.seen_at).map((x) => x.id)));
     });
   }, [profile]);
 
@@ -41,6 +45,24 @@ export function StudentHome() {
   };
   // ami egy órához van csatolva, az az óra alatt látszik; a Gyakorlatok fülön csak a külön kiadott gyakorlatok
   const of = (kind: Material['kind']) => materials.filter((m) => m.kind === kind && (kind !== 'exercise' || !m.lesson_id));
+  const kindOf = (t: Tab) => (t === 'songs' ? 'song' : 'exercise');
+  // fülenként a még nem látott anyagok száma (a fül jelzése)
+  const unseen = useMemo(() => {
+    const count = (k: Material['kind']) => materials.filter((m) => m.kind === k && (k !== 'exercise' || !m.lesson_id) && !m.seen_at).length;
+    return { lessons: 0, songs: count('song'), exercises: count('exercise') } as Record<Tab, number>;
+  }, [materials]);
+
+  // a megnyitott fül anyagai látottak lesznek (a jelzés eltűnik a fülről, a kártyán ezen a látogatáson még ott marad)
+  useEffect(() => {
+    if (!supabase || tab === 'lessons') return;
+    const ids = of(kindOf(tab)).filter((m) => !m.seen_at).map((m) => m.id);
+    if (!ids.length) return;
+    const now = new Date().toISOString();
+    void supabase.rpc('mark_materials_seen', { ids }).then(({ error }) => {
+      if (!error) setMaterials((list) => list.map((m) => (ids.includes(m.id) ? { ...m, seen_at: now } : m)));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, materials]);
 
   return (
     <>
@@ -49,6 +71,7 @@ export function StudentHome() {
           {TABS.map(([t, huLabel, enLabel]) => (
             <button key={t} className={t === tab ? 'on' : ''} onClick={() => chooseTab(t)}>
               {pick(huLabel, enLabel)}
+              {unseen[t] > 0 && <span className="tab-badge" aria-label={pick(`${unseen[t]} új`, `${unseen[t]} new`)}>{unseen[t]}</span>}
             </button>
           ))}
         </nav>
@@ -57,9 +80,20 @@ export function StudentHome() {
         {lessons === null ? (
           <p className="muted">{pick('Betöltés…', 'Loading…')}</p>
         ) : tab === 'lessons' ? (
-          <MyLessons lessons={lessons} materials={materials} />
+          <>
+            {(['exercises', 'songs'] as const).filter((t) => unseen[t] > 0).map((t) => (
+              <button key={t} className="new-notice" onClick={() => chooseTab(t)}>
+                <span className="new-badge">{pick('Új', 'New')}</span>
+                {t === 'exercises'
+                  ? pick(`${unseen[t]} új gyakorlatod van a Gyakorlatok között`, `You have ${unseen[t]} new exercise${unseen[t] > 1 ? 's' : ''}`)
+                  : pick(`${unseen[t]} új dalod van a Dalok között`, `You have ${unseen[t]} new song${unseen[t] > 1 ? 's' : ''}`)}
+                <b aria-hidden="true">→</b>
+              </button>
+            ))}
+            <MyLessons lessons={lessons} materials={materials} />
+          </>
         ) : (
-          <List items={of(tab === 'songs' ? 'song' : 'exercise')} empty={tab === 'songs' ? pick('Még nincs kiadott dalod.', 'No songs assigned yet.') : pick('Még nincs kiadott gyakorlatod.', 'No exercises assigned yet.')} />
+          <List items={of(kindOf(tab))} fresh={fresh} empty={tab === 'songs' ? pick('Még nincs kiadott dalod.', 'No songs assigned yet.') : pick('Még nincs kiadott gyakorlatod.', 'No exercises assigned yet.')} />
         )}
         <button className="btn ghost signout full" onClick={() => void signOut()}>
           {pick('Kilépés', 'Sign out')}
@@ -69,12 +103,12 @@ export function StudentHome() {
   );
 }
 
-function List({ items, empty }: { items: Material[]; empty: string }) {
+function List({ items, empty, fresh }: { items: Material[]; empty: string; fresh: Set<string> }) {
   if (!items.length) return <p className="muted">{empty}</p>;
   return (
     <div className="grid">
       {items.map((m, i) => (
-        <MaterialTile key={m.id} m={m} tone={i % 2} />
+        <MaterialTile key={m.id} m={m} tone={i % 2} fresh={fresh.has(m.id)} />
       ))}
     </div>
   );

@@ -17,11 +17,13 @@ interface Props {
   tone: number;
   /** Ide visz vissza a megnyitott dal vagy óra. */
   back?: string;
+  /** a diák még nem látta: „Új” címke */
+  fresh?: boolean;
 }
 
 /** A diák kártyája: ha az anyag egy helyre visz, az egész kártya a gomb.
  *  Ami többet tud (kotta lejátszóval, fájl és link együtt), az marad MaterialCard. */
-export function MaterialTile({ m, tone, back }: Props) {
+export function MaterialTile({ m, tone, back, fresh }: Props) {
   const { pick, text } = useI18n();
   const songs = useSongs();
   const song = m.kind === 'song' ? findSong(songs, m.ref) : undefined;
@@ -32,14 +34,17 @@ export function MaterialTile({ m, tone, back }: Props) {
   const perms = m.ref === KICK_PERMS_REF;
   const split = m.ref === VOICE_SPLIT_REF;
   const scale = m.ref === RHYTHM_SCALE_REF;
-  if (!strokes && !gear && !perms && !split && !scale && (targets !== 1 || m.bars?.length)) return <MaterialCard m={m} />;
+  if (!strokes && !gear && !perms && !split && !scale && (targets !== 1 || m.bars?.length)) return <MaterialCard m={m} fresh={fresh} />;
 
   const cls = `lesson-card tone-${tone}`;
   const kind = text(KIND_LABEL[m.kind]);
   const sub = song ? [song.artist, song.structure && `${song.structure.bpm} BPM`] : [kind, m.file_name];
   const body: ReactNode = (
     <div className="lesson-card-text">
-      <div className="lesson-card-title">{text(m.title || song?.title || ex?.title || KIND_LABEL[m.kind])}</div>
+      <div className="lesson-card-title">
+        {text(m.title || song?.title || ex?.title || KIND_LABEL[m.kind])}
+        {fresh && <span className="new-badge">{pick('Új', 'New')}</span>}
+      </div>
       <div className="lesson-card-sub">{sub.filter(Boolean).join(' · ')}</div>
       {m.note && <p className="lesson-notes">{text(m.note)}</p>}
     </div>

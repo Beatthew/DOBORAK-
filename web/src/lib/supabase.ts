@@ -53,6 +53,8 @@ export interface Material {
   clip?: import('../songs/clips').ClipRef | null;
   /** Hányadik az órán belül; null, ami még nem kapott helyet (az a végére kerül, felvétel szerint). */
   position?: number | null;
+  /** mikor látta a diák (a Dalok / Gyakorlatok fülön); üres = új neki */
+  seen_at?: string | null;
   created_at: string;
 }
 

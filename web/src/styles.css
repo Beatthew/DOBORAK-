@@ -3928,3 +3928,67 @@ label.form textarea.code {
   min-height: 40px;
   font-size: 20px;
 }
+
+/* ---------- „Új” jelzés a diáknak ---------- */
+
+.tabs button {
+  position: relative;
+}
+
+.tab-badge {
+  position: absolute;
+  top: -6px;
+  right: -2px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border: 2px solid var(--ink);
+  border-radius: 99px;
+  background: var(--sand);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 18px;
+  text-align: center;
+}
+
+.new-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--sand);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.new-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  margin-bottom: 14px;
+  padding: 12px 16px;
+  border: var(--line) solid var(--ink);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.new-notice .new-badge {
+  margin-left: 0;
+}
+
+.new-notice b {
+  margin-left: auto;
+  font-size: 20px;
+}

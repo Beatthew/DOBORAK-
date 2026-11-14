@@ -20,10 +20,12 @@ interface Props {
   m: Material;
   /** Tanári nézetben: törlés gomb. */
   onDelete?: () => void;
+  /** a diák még nem látta: „Új” címke */
+  fresh?: boolean;
 }
 
 /** Egy kiadott anyag: dal → a dal gyakorló oldala, gyakorlat → kész óra, fájl → letöltés, link → megnyitás. */
-export function MaterialCard({ m, onDelete }: Props) {
+export function MaterialCard({ m, onDelete, fresh }: Props) {
   const { pick, text, locale } = useI18n();
   const strokes = m.ref === STROKES_REF || m.ref === KICK_PERMS_REF || m.ref === VOICE_SPLIT_REF || m.ref === RHYTHM_SCALE_REF;
   const clip = m.kind === 'library' ? findClip(m.ref) : undefined;
@@ -39,7 +41,10 @@ export function MaterialCard({ m, onDelete }: Props) {
         <span className="mat-kind">{text(KIND_LABEL[m.kind])}</span>
         <span className="mat-date">{new Date(m.created_at).toLocaleDateString(locale)}</span>
       </div>
-      <h3>{title}</h3>
+      <h3>
+        {title}
+        {fresh && <span className="new-badge">{pick('Új', 'New')}</span>}
+      </h3>
       {song && song.artist && <p className="mat-sub">{song.artist}</p>}
       {m.note && <p className="mat-note">{text(m.note)}</p>}
       {!strokes && beats.length > 0 && (
