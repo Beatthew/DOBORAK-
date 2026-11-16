@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { FolderIcon, PencilIcon, PlayIcon } from '../components/Icons';
 import { TopBar } from '../components/TopBar';
 import { songPath } from '../data/catalog';
 import { useLibrary, type LibraryItem } from '../data/library';
 import { useI18n } from '../i18n';
 import { supabase } from '../lib/supabase';
-import { coverUrl, dropSong, patchSong, reloadSongs, songSummary, useSongs, type SongRow, type SongStatus } from '../songs/store';
+import { dropSong, patchSong, reloadSongs, useSongs, type SongRow, type SongStatus } from '../songs/store';
+import { elements } from '../songs/structure';
 
 /* Tananyag → Dalok: a Song Practice kezdőlapja a BEATHUBban. Fent a YouTube link (UPLOAD), alatta a dalok
    mappákba rendezve. A link egy 'queued' sor lesz; a gépen futó feldolgozó (start-worker.bat) veszi fel,
-   és az állapota itt élőben látszik. Kész dal: gyakorlás vagy szerkesztés. */
+   és az állapota itt élőben látszik. A dalok egymás alatti sorok: a sorra kattintva a gyakorló oldal, a ceruzával
+   a szerkesztő (ott van a közzététel, a mappa és a törlés is). A mappák a lista fölött; egy mappa a ?mappa= címen nyílik. */
 
 const VIDEO_ID = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|live\/|shorts\/)|[?&]v=)([a-zA-Z0-9_-]{11})/;
 const BUSY: SongStatus[] = ['queued', 'downloading', 'separating', 'analyzing'];
@@ -30,6 +33,8 @@ export function SongsHub() {
   const [msg, setMsg] = useState<{ text: string; err?: boolean } | null>(null);
   const [workerSeen, setWorkerSeen] = useState<number | null>(null);
   const library = pick('Tananyag', 'Library');
+  const [params, setParams] = useSearchParams();
+  const open = params.get('mappa');
 
   // a feldolgozás állapota élőben
   useEffect(() => {
@@ -77,11 +82,12 @@ export function SongsHub() {
   };
 
   const folders = useMemo(() => [...new Set((songs ?? []).map((s) => s.folder).filter((f): f is string => !!f))].sort(), [songs]);
-  const loose = (songs ?? []).filter((s) => !s.folder);
+  const shown = (songs ?? []).filter((s) => (open ? s.folder === open : !s.folder));
+  const exercisesOf = (id: string) => items.filter((x) => x.category === 'dalok' && x.song === id);
 
   return (
     <>
-      <TopBar title={pick('Dalok', 'Songs')} backTo="/tananyag" backLabel={library} />
+      <TopBar title={open ?? pick('Dalok', 'Songs')} backTo={open ? '/tananyag/dalok' : '/tananyag'} backLabel={open ? pick('Dalok', 'Songs') : library} />
       <main className="page song-hub">
         <form className="hub-upload" onSubmit={(e) => void submit(e)} autoComplete="off">
           <input value={link} onChange={(e) => setLink(e.target.value)} placeholder={pick('YouTube link', 'YouTube link')} aria-label="YouTube link" required />
@@ -99,20 +105,24 @@ export function SongsHub() {
         {!songs ? (
           <p className="muted">{pick('Betöltés…', 'Loading…')}</p>
         ) : (
-          <>
-            {folders.map((f) => (
-              <section key={f} className="hub-folder">
-                <h2>{f}</h2>
-                <SongGrid songs={songs.filter((s) => s.folder === f)} folders={folders} items={items} />
-              </section>
+          <div className="song-list">
+            {!open &&
+              folders.map((f) => (
+                <button key={f} className="song-row folder" onClick={() => setParams({ mappa: f })}>
+                  <span className="song-row-icon"><FolderIcon /></span>
+                  <span className="song-row-text">
+                    <b>{f}</b>
+                    <small>{pick(`${songs.filter((s) => s.folder === f).length} dal`, `${songs.filter((s) => s.folder === f).length} songs`)}</small>
+                  </span>
+                </button>
+              ))}
+            {shown.map((s) => (
+              <SongRowItem key={s.id} s={s} back={open ? `/tananyag/dalok?mappa=${encodeURIComponent(open)}` : '/tananyag/dalok'} exercises={exercisesOf(s.id)} />
             ))}
-            {(loose.length > 0 || !folders.length) && (
-              <section className="hub-folder">
-                {folders.length > 0 && <h2>{pick('Többi dal', 'Other songs')}</h2>}
-                {loose.length ? <SongGrid songs={loose} folders={folders} items={items} /> : <p className="muted">{pick('Még nincs dal. Adj be fent egy YouTube linket.', 'No songs yet. Paste a YouTube link above.')}</p>}
-              </section>
+            {!shown.length && !(!open && folders.length) && (
+              <p className="muted">{open ? pick('Ebben a mappában nincs dal.', 'This folder is empty.') : pick('Még nincs dal. Adj be fent egy YouTube linket.', 'No songs yet. Paste a YouTube link above.')}</p>
             )}
-          </>
+          </div>
         )}
         <p className="muted hub-foot">{pick(
             'A feldolgozás a gépeden fut (dob és band szétválasztása, ütemek, szekciók); a szerkesztés innen bárhonnan megy, és a közzétett dalt a diákok azonnal látják.',
@@ -123,102 +133,69 @@ export function SongsHub() {
   );
 }
 
-function SongGrid({ songs, folders, items }: { songs: SongRow[]; folders: string[]; items: LibraryItem[] }) {
-  return (
-    <div className="hub-grid">
-      {songs.map((s, i) => (
-        <SongCard key={s.id} s={s} tone={i % 2} folders={folders} exercises={items.filter((x) => x.category === 'dalok' && x.song === s.id)} />
-      ))}
-    </div>
-  );
-}
-
-function SongCard({ s, tone, folders, exercises }: { s: SongRow; tone: number; folders: string[]; exercises: LibraryItem[] }) {
+/** egy dal sora: lejátszás gomb (a gyakorló oldal), cím és előadó, címkék, a végén ceruza (szerkesztő);
+ *  feldolgozás közben az állapota; alatta behúzva a dalhoz készült gyakorlatok */
+function SongRowItem({ s, back, exercises }: { s: SongRow; back: string; exercises: LibraryItem[] }) {
   const { pick, text } = useI18n();
-  const cover = coverUrl(s);
   const ready = s.status === 'done' && !!s.structure;
   const title = s.title || s.video_id || s.id;
-
-  const update = async (fields: Partial<SongRow>) => {
+  const els = useMemo(() => (s.structure ? elements(s.structure, s.structure.patterns ?? {}) : []), [s.structure]);
+  const fills = els.filter((e) => e.type === 'fill').length;
+  const retry = async () => {
     if (!supabase) return;
-    patchSong({ id: s.id, ...fields });
-    const { error } = await supabase.from('songs').update(fields).eq('id', s.id);
-    if (error) {
-      alert(error.message);
-      void reloadSongs();
-    }
+    patchSong({ id: s.id, status: 'queued', progress: 0, error: null });
+    await supabase.from('songs').update({ status: 'queued', progress: 0, error: null }).eq('id', s.id);
   };
-  const move = (v: string) => {
-    if (v === '+') {
-      const name = prompt(pick('Az új mappa neve:', 'New folder name:'))?.trim().slice(0, 60);
-      if (name) void update({ folder: name });
-    } else void update({ folder: v || null });
-  };
-  const remove = async () => {
-    if (!supabase || !confirm(pick(`Törlöd: ${title}? (A sávjai is törlődnek; az órákhoz csatolt hivatkozások nem nyílnak meg többé.)`, `Delete ${title}? (Its tracks are deleted too; lessons linking to it will no longer open it.)`))) return;
-    await supabase.storage.from('songs').remove([`${s.id}/drums.mp3`, `${s.id}/band.mp3`]);
-    const { error } = await supabase.from('songs').delete().eq('id', s.id);
-    if (error) return alert(error.message);
-    dropSong(s.id);
-  };
-
+  const body = (
+    <>
+      <span className="song-row-icon play"><PlayIcon size={20} /></span>
+      <span className="song-row-text">
+        <b>{title}</b>
+        {s.artist && <small>{s.artist}</small>}
+      </span>
+      {ready && (
+        <span className="song-row-tags">
+          <i>{s.structure!.bpm} BPM</i>
+          <i>4/4</i>
+          {fills > 0 && <i className="fill">{fills} FILL</i>}
+          {!s.published && <i className="draft">{pick('PISZKOZAT', 'DRAFT')}</i>}
+        </span>
+      )}
+    </>
+  );
   return (
-    <article className={`hub-card tone-${tone}`}>
-      {cover ? <img className="hub-cover" src={cover} alt="" loading="lazy" /> : <span className="hub-cover none" aria-hidden="true">♪</span>}
-      <div className="hub-body">
-        <div className="lesson-card-title">{title}</div>
-        <div className="lesson-card-sub">{ready ? songSummary(s) : s.artist}</div>
-        {s.status !== 'done' && (
-          <div className="hub-status">
-            <span>{pick(...STATUS[s.status])}{s.status !== 'queued' && s.status !== 'error' && ` · ${s.progress}%`}</span>
-            {s.status !== 'error' && s.status !== 'queued' && (
-              <span className="hub-progress"><span style={{ width: `${s.status === 'downloading' ? s.progress : s.status === 'separating' ? 50 : 85}%` }} /></span>
+    <>
+      <div className="song-row-wrap">
+        {ready ? (
+          <Link className="song-row" to={songPath(s.id)} state={{ back }}>{body}</Link>
+        ) : (
+          <div className="song-row busy">
+            <span className="song-row-icon play"><PlayIcon size={20} /></span>
+            <span className="song-row-text">
+              <b>{title}</b>
+              <small>
+                {pick(...STATUS[s.status])}
+                {s.status !== 'queued' && s.status !== 'error' && ` · ${s.progress}%`}
+                {s.error && ` · ${s.error}`}
+              </small>
+            </span>
+            {s.status === 'error' && (
+              <button className="btn small" onClick={() => void retry()}>{pick('Újra', 'Retry')}</button>
             )}
-            {s.error && <small>{s.error}</small>}
           </div>
         )}
-        <div className="hub-actions">
-          {ready && (
-            <>
-              <Link className="btn small primary" to={songPath(s.id)} state={{ back: '/tananyag/dalok' }}>
-                {pick('Gyakorlás', 'Practice')}
-              </Link>
-              <Link className="btn small" to={`/tananyag/dalok/${encodeURIComponent(s.id)}/szerkesztes`}>
-                {pick('Szerkesztés', 'Edit')}
-              </Link>
-              <button className={`btn small pub${s.published ? ' on' : ''}`} onClick={() => void update({ published: !s.published })} aria-pressed={s.published}>
-                {s.published ? pick('Közzétéve', 'Published') : pick('Piszkozat', 'Draft')}
-              </button>
-            </>
-          )}
-          {s.status === 'error' && (
-            <button className="btn small" onClick={() => void update({ status: 'queued', progress: 0, error: null })}>
-              {pick('Újra', 'Retry')}
-            </button>
-          )}
-          <select className="hub-folder-pick" value={s.folder ?? ''} onChange={(e) => move(e.target.value)} aria-label={pick('Mappa', 'Folder')}>
-            <option value="">{pick('Nincs mappában', 'No folder')}</option>
-            {folders.map((f) => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-            <option value="+">{pick('+ Új mappa…', '+ New folder…')}</option>
-          </select>
-          <button className="btn small ghost" onClick={() => void remove()} disabled={s.status !== 'done' && s.status !== 'error' && s.status !== 'queued'}>
-            {pick('Törlés', 'Delete')}
-          </button>
-        </div>
-        {exercises.length > 0 && (
-          <nav className="hub-exercises" aria-label={pick('Gyakorlatok a dalhoz', 'Exercises for the song')}>
-            <span>{pick('Gyakorlatok', 'Exercises')}</span>
-            {exercises.map((x) => (
-              <Link key={x.id} to={`/tananyag/dalok/${x.id}`}>
-                <b>{text(x.title)}</b>
-                {x.subtitle && <small>{text(x.subtitle)}</small>}
-              </Link>
-            ))}
-          </nav>
-        )}
+        <Link className="song-row-edit" to={`/tananyag/dalok/${encodeURIComponent(s.id)}/szerkesztes`} state={{ back }} aria-label={`${pick('Szerkesztés', 'Edit')}: ${title}`}>
+          <PencilIcon size={22} />
+        </Link>
       </div>
-    </article>
+      {exercises.map((x) => (
+        <Link key={x.id} className="song-row sub" to={`/tananyag/dalok/${x.id}`}>
+          <span className="song-row-text">
+            <b>↳ {text(x.title)}</b>
+            {x.subtitle && <small>{text(x.subtitle)}</small>}
+          </span>
+        </Link>
+      ))}
+    </>
   );
 }

@@ -3992,3 +3992,155 @@ label.form textarea.code {
   margin-left: auto;
   font-size: 20px;
 }
+
+/* ---------- Dalok: tétellista (sorok egymás alatt), mappák fölül ---------- */
+
+.song-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.song-row-wrap {
+  display: flex;
+  gap: 8px;
+}
+
+.song-row {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  padding: 10px 14px;
+  border: var(--line) solid var(--track);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+  text-decoration: none;
+}
+
+a.song-row:hover,
+button.song-row:hover {
+  border-color: var(--ink);
+}
+
+.song-row.folder {
+  width: 100%;
+  background: var(--sand);
+  border-color: var(--sand);
+}
+
+.song-row-icon {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--mint);
+}
+
+.song-row-icon.play {
+  background: var(--mint);
+  color: var(--ink);
+}
+
+.song-row.busy .song-row-icon.play {
+  background: var(--track);
+  color: rgba(0, 8, 7, 0.4);
+}
+
+.song-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.song-row-text b {
+  font-size: 18px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.song-row-text small {
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.65;
+  overflow-wrap: anywhere;
+}
+
+.song-row-tags {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.song-row-tags i {
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--track);
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.song-row-tags i.fill {
+  background: var(--sand);
+}
+
+.song-row-tags i.draft {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--track);
+  opacity: 0.7;
+}
+
+.song-row-edit {
+  flex: none;
+  width: 64px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--mint);
+}
+
+.song-row.sub {
+  min-height: 52px;
+  margin-left: 62px;
+  margin-right: 72px;
+  border-style: dashed;
+}
+
+.song-row.sub b {
+  font-size: 15px;
+}
+
+@media (max-width: 600px) {
+  .song-row-tags {
+    display: none;
+  }
+  .song-row.sub {
+    margin-left: 24px;
+    margin-right: 0;
+  }
+}
+
+.ed-folder {
+  min-height: 60px;
+  padding: 0 12px;
+  border: var(--line) solid var(--ink);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}

@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase';
 import { EditorModel, INST, LENS, SUBDIV, keyOf, parseBeat, partOf, type Tab } from '../songs/editorModel';
 import { SongEngine } from '../songs/engine';
 import { rowSVG } from '../songs/notation';
-import { findSong, loadSongData, patchSong, useSongs, type SongRow } from '../songs/store';
+import { dropSong, findSong, loadSongData, patchSong, useSongs, type SongRow } from '../songs/store';
 import { applyRegrid, irregularBars } from '../songs/structure';
 import type { Beats } from '../songs/types';
 
@@ -212,6 +212,33 @@ function Editor({ row }: { row: SongRow }) {
     patchSong({ id: row.id, published: next });
   };
 
+  /* mappa és törlés: a Dalok lista csak sorokat mutat, ezek ide kerültek */
+  const allSongs = useSongs();
+  const folders = useMemo(() => [...new Set((allSongs ?? []).map((s) => s.folder).filter((f): f is string => !!f))].sort(), [allSongs]);
+  const [folder, setFolder] = useState(row.folder ?? '');
+  const moveTo = async (v: string) => {
+    if (!supabase) return;
+    let next: string | null = v || null;
+    if (v === '+') {
+      next = prompt(pick('Az új mappa neve:', 'New folder name:'))?.trim().slice(0, 60) || null;
+      if (!next) return;
+    }
+    const { error } = await supabase.from('songs').update({ folder: next }).eq('id', row.id);
+    if (error) return setMsg({ text: error.message, err: true });
+    setFolder(next ?? '');
+    patchSong({ id: row.id, folder: next });
+  };
+  const removeSong = async () => {
+    if (!supabase || !confirm(pick(`Törlöd: ${title}? A sávjai is törlődnek, és az órákhoz csatolt hivatkozások nem nyílnak meg többé. Nem vonható vissza.`, `Delete ${title}? Its tracks are deleted too, and lessons linking to it will no longer open it. This cannot be undone.`))) return;
+    clearTimeout(saveTimer.current);
+    saveTimer.current = 0;
+    await supabase.storage.from('songs').remove([`${row.id}/drums.mp3`, `${row.id}/band.mp3`]);
+    const { error } = await supabase.from('songs').delete().eq('id', row.id);
+    if (error) return setMsg({ text: error.message, err: true });
+    dropSong(row.id);
+    nav('/tananyag/dalok', { replace: true });
+  };
+
   /* Tananyagba: a minta önálló tananyag lesz (groove → Groove-ok, fill → Fillek), a dalból kivágott hangjával:
      a gyakorló részlete (amit a diák is ismétel) a két sávból WAV-ként a „clips” tárhelyre kerül. */
   const toLibrary = async (k: string) => {
@@ -360,6 +387,16 @@ function Editor({ row }: { row: SongRow }) {
 
         <div className="ed-actions">
           <span className={`ed-msg${msg.err ? ' err' : ''}`}>{msg.text}</span>
+          <select className="ed-folder" value={folder} onChange={(e) => void moveTo(e.target.value)} aria-label={pick('Mappa', 'Folder')}>
+            <option value="">{pick('Nincs mappában', 'No folder')}</option>
+            {folders.map((f) => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+            <option value="+">{pick('+ Új mappa…', '+ New folder…')}</option>
+          </select>
+          <button className="btn ghost" onClick={() => void removeSong()}>
+            {pick('Törlés', 'Delete')}
+          </button>
           <button className={`btn pub${published ? ' on' : ''}`} onClick={() => void togglePublish()} aria-pressed={published}>
             {published ? pick('Közzétéve a diákoknak', 'Published to students') : pick('Közzététel a diákoknak', 'Publish to students')}
           </button>
