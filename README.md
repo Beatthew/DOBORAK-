@@ -21,7 +21,8 @@ A tanári és a diák felület egy helyen: diákok, órák, tananyag és a Song 
 - `worker/` – a feldolgozó, ami a gépen fut (letöltés, dob/band szétválasztás a GPU-n, ütem- és szekciófelismerés).
   Indítás: `start-worker.bat` (a Song Practice Python környezetét használja). Kell hozzá a `worker/.env`
   (minta: `worker/.env.example`; a Supabase → Project Settings → API Keys → Secret keys kulcsa). Amíg nem fut,
-  a beadott linkek sorban várnak.
+  a beadott linkek sorban várnak. A Windows indításában a `worker/run-hidden.ps1` fut (ablak nélkül, a kimenete a
+  `worker/work/worker.log`-ba megy; ha már fut egy példány, nem indít másodikat).
 - `supabase/schema.sql` – adatbázis, tárhely, jogosultságok.
 - `assets/` – arculat, a régi dobórák QR-kódjai és drótváza; a `Real Drums Vol. 1` sample-csomag csak helyben van (nincs gitben).
 
