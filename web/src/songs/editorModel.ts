@@ -54,6 +54,8 @@ export function barAtTime(downbeats: number[], t: number) {
 export class EditorModel {
   S: Structure;
   blocks: Block[] = [];
+  /** kézi sortörések: ezek után az ütemek (0-tól) után új sor jön a vásznon */
+  breaks = new Set<number>();
   patterns: Record<string, Pattern> = {};
   tab: Tab = 'groove';
   selPat: string | null = null;
@@ -75,6 +77,7 @@ export class EditorModel {
     this.S = s;
     const secs = [...s.sections].sort((a, b) => a.from - b.from);
     this.patterns = JSON.parse(JSON.stringify(s.patterns ?? {}));
+    this.breaks = new Set(s.breaks ?? []);
     // minden tárolt ütem a dal idővonalán a saját helyére kerül
     const n = Math.max(s.bars, secs.length ? secs[secs.length - 1].to : 0);
     const all: BarRef[] = Array(n).fill(null);
@@ -235,7 +238,7 @@ export class EditorModel {
     const b = this.blocks[this.shownBlock];
     const inSec = new Set(b ? b.bars.map(this.baseOf) : []);
     return Object.keys(this.patterns)
-      .filter((k) => this.patterns[k].type === type && !this.patterns[k].variantOf)
+      .filter((k) => this.patterns[k].type === type && !this.patterns[k].variantOf && !this.patterns[k].draft)
       .sort((x, y) => +inSec.has(y) - +inSec.has(x))
       .map((k) => ({ key: k, inSection: inSec.has(k), variants: this.variantsOf(k) }));
   }
@@ -317,6 +320,7 @@ export class EditorModel {
     if (!k || !this.patterns[k]) return null;
     if (this.tab !== 'song') return k;
     const all = this.flatBars(), gi = this.spans()[this.shownBlock].from - 1 + this.selBar, [s, c] = this.placementAt(all, gi);
+    if (this.patterns[k].draft) return k;   // a vásznon kezdett saját ütem: közvetlenül szerkeszthető
     if (!this.patterns[k].variantOf || (this.useCount()[k] || 0) > c) {
       const base = this.baseOf(k)!, src = this.patterns[k];
       const n = Math.max(0, ...this.variantsOf(base).map((v) => +(this.patterns[v].name.match(/^v(\d+)$/) || [0, 0])[1])) + 1;
@@ -472,10 +476,130 @@ export class EditorModel {
     return { from, to, score };
   }
 
+  /* ---------------------------------------------------------------- a vászon (kottalap) műveletei
+     Az ütemek itt a dal ütemei 0-tól (gi); a szekció a blokkja. */
+
+  /** a kottalap sorai: új sor egy szekció elején, egy kézi sortörés után, és 4 ütemenként */
+  rowsLayout() {
+    const starts = new Set(this.spans().map((x) => x.from - 1));
+    const rows: number[][] = [];
+    let cur: number[] = [];
+    const n = this.totalBars();
+    for (let i = 0; i < n; i++) {
+      if (cur.length && (starts.has(i) || cur.length === 4 || this.breaks.has(i - 1))) {
+        rows.push(cur);
+        cur = [];
+      }
+      cur.push(i);
+    }
+    if (cur.length) rows.push(cur);
+    return rows;
+  }
+  refAt = (gi: number) => this.flatBars()[gi] ?? null;
+  blockOfBar = (gi: number) => this.blockAtBar(gi + 1);
+  /** a kijelölt ütemekbe egy minta (több ütemes minta sorban ismétlődve); k = null: ürítés */
+  placeOn(indices: number[], k: string | null) {
+    const all = this.flatBars(), L = k ? this.plen(k) : 1;
+    [...indices].sort((a, b) => a - b).forEach((gi, n) => (all[gi] = k ? refOf(k, (n % L) + 1) : null));
+    this.reslice(all);
+  }
+  /** beillesztés: a vágólap ütemei sorban, ismétlődve a kijelölésen */
+  pasteRefs(indices: number[], clip: BarRef[]) {
+    if (!clip.length) return;
+    const all = this.flatBars();
+    [...indices].sort((a, b) => a - b).forEach((gi, n) => (all[gi] = clip[n % clip.length]));
+    this.reslice(all);
+  }
+  /** egy minta az egész szekcióba; a szekció végén álló fill (minden üteme) megmarad */
+  fillSection(i: number, k: string) {
+    const sp = this.spans()[i], all = this.flatBars(), L = this.plen(k);
+    let end = sp.to;   // 1-től
+    while (end >= sp.from && this.isFillKey(all[end - 1])) end--;
+    if (end < sp.from) end = sp.to;
+    for (let b = sp.from; b <= end; b++) all[b - 1] = refOf(k, ((b - sp.from) % L) + 1);
+    this.reslice(all);
+  }
+  /** a szekció a gi. ütemen kezdődjön (a jelölő áthúzása): a szomszédos szekciók határa mozdul, a kotta marad */
+  moveSectionStart(i: number, gi: number) {
+    if (i === 0) return;
+    this.setFrom(i, gi + 1);
+  }
+  /** új szekció a gi. ütemtől (ha ott már kezdődik egy, csak átnevezi); a második VERSE neve VERSE 2 */
+  addSectionAt(gi: number, name: string) {
+    const bar = gi + 1, sp = this.spans();
+    const same = this.blocks.filter((b) => b.name.replace(/ \d+$/, '').toUpperCase() === name.toUpperCase()).length;
+    const label = same ? `${name} ${same + 1}` : name;
+    const at = sp.findIndex((x) => x.from === bar);
+    if (at >= 0) {
+      this.blocks[at].name = label;
+      return at;
+    }
+    const i = sp.findIndex((x) => bar > x.from && bar <= x.to);
+    if (i < 0) return -1;
+    const all = this.flatBars();
+    this.blocks.splice(i + 1, 0, { name: label, tacet: false, len: sp[i].to - bar + 1, bars: [] });
+    this.blocks[i].len = bar - sp[i].from;
+    this.reslice(all);
+    return i + 1;
+  }
+  toggleBreak(gi: number) {
+    if (this.breaks.has(gi)) this.breaks.delete(gi);
+    else this.breaks.add(gi);
+  }
+  /** a gi. ütem szerkesztése alulról: üres ütemnél egy saját (piszkozat) ütem jön létre; a mintaszerkesztő SONG módban dolgozik */
+  openBar(gi: number) {
+    const all = this.flatBars();
+    if (!this.okRef(all[gi])) {
+      const k = 'd' + Date.now().toString(36);
+      this.patterns[k] = { name: `${gi + 1}. ütem`, type: 'groove', len: 1, beats: ['-', '-', '-', '-'], draft: true };
+      all[gi] = k;
+      this.reslice(all);
+    }
+    const i = this.blockOfBar(gi);
+    this.tab = 'song';
+    this.shownBlock = i;
+    this.selBar = gi - (this.spans()[i].from - 1);
+  }
+  /** egy alap elem (groove / fill) szerkesztése alulról: minden ütem változik, ami használja */
+  openPattern(k: string) {
+    this.tab = this.patterns[k]?.type ?? 'groove';
+    this.selPat = k;
+  }
+  /** Mentés groove-ként / fillként: a kijelölt ütem(ek) kottája új elem lesz (2 vagy 4 egymás utáni ütem: több ütemes elem),
+   *  és a kijelölt ütemek innentől azt játsszák */
+  saveAsElement(indices: number[], name: string, type: PatternType) {
+    const sorted = [...indices].sort((a, b) => a - b);
+    const all = this.flatBars();
+    const contiguous = sorted.every((g, n) => !n || g === sorted[n - 1] + 1);
+    const L = contiguous && (sorted.length === 2 || sorted.length === 4) ? sorted.length : 1;
+    const beats: string[] = [], hands: string[] = [];
+    for (let n = 0; n < L; n++) {
+      const r = all[sorted[n]];
+      beats.push(...(this.partBeats(r) ?? ['-', '-', '-', '-']));
+      hands.push(...(this.partHands(r) ?? ['-', '-', '-', '-']));
+    }
+    const k = 'p' + Date.now().toString(36);
+    this.patterns[k] = { name, type, len: L, beats, ...(hands.some((h) => /[RL]/.test(h)) ? { hands } : {}) };
+    sorted.forEach((gi, n) => (all[gi] = refOf(k, (n % L) + 1)));
+    this.reslice(all);
+    // a piszkozat ütem, amiből lett, már sehol sem szól: törlődik
+    const uses = this.useCount();
+    for (const d of Object.keys(this.patterns)) if (this.patterns[d].draft && !uses[d]) delete this.patterns[d];
+    return k;
+  }
+
   /* ---------------------------------------------------------------- visszavonás és mentés */
 
   private snapshot() {
-    return JSON.stringify({ blocks: this.blocks.map((b) => ({ name: b.name, len: b.len, tacet: b.tacet, bars: b.bars })), patterns: this.patterns });
+    return JSON.stringify({ blocks: this.blocks.map((b) => ({ name: b.name, len: b.len, tacet: b.tacet, bars: b.bars })), patterns: this.patterns, breaks: [...this.breaks] });
+  }
+  /** az egész állapot egy szövegben (a vászon szerkesztőpanelje: Mégse = vissza ide) */
+  snap = () => this.snapshot();
+  restoreSnap(json: string) {
+    const d = JSON.parse(json);
+    this.blocks = d.blocks;
+    this.patterns = d.patterns;
+    this.breaks = new Set(d.breaks ?? []);
   }
   /** minden változtatás egy lépés; a gyors egymás utániak (név gépelése, több kattintás) egy lépés */
   remember() {
@@ -497,6 +621,7 @@ export class EditorModel {
     const d = JSON.parse(this.hist[i]);
     this.blocks = d.blocks;
     this.patterns = d.patterns;
+    this.breaks = new Set(d.breaks ?? []);
     if (this.selPat && !this.patterns[this.selPat]) this.selPat = null;
     this.histAt = 0;
   }
@@ -513,9 +638,10 @@ export class EditorModel {
   /** a mentendő szerkezet: a már sehol sem használt variáció kimarad (pl. VISSZA AZ ALAPRA után) */
   toStructure() {
     const uses = this.useCount();
-    for (const k of Object.keys(this.patterns)) if (this.patterns[k].variantOf && !uses[k]) delete this.patterns[k];
+    for (const k of Object.keys(this.patterns)) if ((this.patterns[k].variantOf || this.patterns[k].draft) && !uses[k]) delete this.patterns[k];
     const sp = this.spans();
     const sections = this.blocks.map((b, i) => ({ name: b.name, from: sp[i].from, to: sp[i].to, tacet: b.tacet, bars: b.bars }));
-    return cleanStructure({ ...this.S, sections, patterns: this.patterns });
+    const n = this.totalBars();
+    return cleanStructure({ ...this.S, sections, patterns: this.patterns, breaks: [...this.breaks].filter((b) => b < n - 1).sort((a, b) => a - b) });
   }
 }

@@ -42,7 +42,9 @@ function ScrollToTop() {
 function Shell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const narrow = pathname.startsWith('/lesson/');
-  return <div className={`app${narrow ? '' : ' wide'}`}>{children}</div>;
+  // a dal szerkesztője (kottalap) a teljes ablakot kapja
+  const full = pathname.startsWith('/tananyag/dalok/') && pathname.endsWith('/szerkesztes');
+  return <div className={`app${narrow ? '' : full ? ' wide full' : ' wide'}`}>{children}</div>;
 }
 
 /** Csak helyi fejlesztéshez (npm run dev): sessionStorage 'dev-teacher' = a tanári oldalak belépés nélkül; az éles buildben nincs. */

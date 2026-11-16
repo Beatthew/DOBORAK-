@@ -20,6 +20,8 @@ export interface Pattern {
   hands?: string[];
   /** variáció: az alap elem kulcsa */
   variantOf?: string;
+  /** a vásznon szerkesztett, még el nem mentett ütem (nincs a groove-ok / fillek között, a diák nem látja elemként) */
+  draft?: boolean;
 }
 
 export type BarRef = string | null;
@@ -41,6 +43,8 @@ export interface Structure {
   bars: number;
   sections: StoredSection[];
   patterns?: Record<string, Pattern>;
+  /** kézi sortörések a szerkesztő vásznán: ezek után az ütemek (0-tól) után új sor kezdődik */
+  breaks?: number[];
   duration?: number;
 }
 
@@ -141,7 +145,7 @@ export function elements(s: Structure, patterns: Record<string, Pattern>): Eleme
   };
   const entry = (k: string): ElementEntry => ({ key: k, name: patterns[k].name, len: plen(patterns, k), loop: loop(k) });
 
-  const used = [...new Set(keys.filter((k): k is string => !!k))];
+  const used = [...new Set(keys.filter((k): k is string => !!k && !patterns[k].draft))];
   const out: ElementEntry[] = [];
   for (const k of used) {
     if (patterns[k].variantOf) continue;
@@ -230,6 +234,7 @@ export function cleanStructure(s: Structure): { structure: Structure; error: str
       len: Number(p.len) || 1,
       beats: p.beats.map((b) => String(b).trim() || '-'),
       ...(p.variantOf ? { variantOf: String(p.variantOf) } : {}),
+      ...(p.draft ? { draft: true } : {}),
       ...(p.hands ? { hands: p.hands.map((h) => String(h).trim() || '-') } : {}),
     };
     // kézrend: minden negyedre R / L / -, különben elhagyva

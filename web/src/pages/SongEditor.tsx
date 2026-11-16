@@ -1,19 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { SongMixer } from '../components/SongMixer';
 import { TopBar } from '../components/TopBar';
 import { songPath } from '../data/catalog';
 import { useI18n } from '../i18n';
 import { supabase } from '../lib/supabase';
-import { EditorModel, INST, LENS, SUBDIV, keyOf, parseBeat, partOf, type Tab } from '../songs/editorModel';
+import { EditorModel, INST, LENS, SUBDIV, keyOf, parseBeat, partOf } from '../songs/editorModel';
 import { SongEngine } from '../songs/engine';
 import { rowSVG } from '../songs/notation';
 import { dropSong, findSong, loadSongData, patchSong, useSongs, type SongRow } from '../songs/store';
-import { applyRegrid, irregularBars } from '../songs/structure';
+import { applyRegrid, irregularBars, type BarRef, type PatternType } from '../songs/structure';
 import type { Beats } from '../songs/types';
 
-/* A dal szerkesztője: a Song Practice SZERKESZTÉS nézete a BEATHUBban. Bal oldalt a lejátszó és a szekciók,
-   jobbra a kotta (GROOVE / FILLS / SONG) és a mintaszerkesztő; alatta a keverő. Minden változtatás magától mentődik
+/* A dal szerkesztője: a MuseScore egyszerűsített változata. Középen a teljes dal egy kottalapon (4 ütemes sorok,
+   a szekciójelölők a kottán, fel-le húzhatók); bal oldalt a groove-ok, fillek és szekciójelölők (ráhúzhatók); jobbra a keverő.
+   Kattintás: kijelölés (Shift: tartomány, Ctrl: hozzáadás) · dupla katt: alulról az ütem szerkesztője · jobb klikk: menü
+   (mentés groove-ként / fillként…) · Ctrl+C / Ctrl+V · Enter: sortörés · Delete: ürítés. Minden változtatás magától mentődik
    (a songs.structure-be), és a közzétett dalt a diákok azonnal az újjal kapják. A logika: songs/editorModel.ts. */
 
 const fmt = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
@@ -23,6 +25,18 @@ function barSvg(beats: string[] | null, hands: string[] | null, label: number | 
   const b: Beats | null = beats ? Object.assign([...beats], hands ? { hands } : {}) : null;
   const n = typeof label === 'number' ? label : 0;
   return rowSVG([b], [label], w, { fillBars: new Set(isFill ? [n] : []), rideBars: new Set() });
+}
+
+const svgCache = new Map<string, string>();
+function barSvgCached(beats: string[] | null, hands: string[] | null, label: number | string, isFill: boolean) {
+  const key = JSON.stringify([beats, hands, label, isFill]);
+  let v = svgCache.get(key);
+  if (!v) {
+    v = barSvg(beats, hands, label, isFill, 300);
+    if (svgCache.size > 2000) svgCache.clear();
+    svgCache.set(key, v);
+  }
+  return v;
 }
 
 export function SongEditor() {
@@ -153,15 +167,6 @@ function Editor({ row }: { row: SongRow }) {
     return () => cancelAnimationFrame(raf);
   }, [engine, model]);
 
-  // a kotta a lejátszott szekciót követi (az 1. ütem előtt: az elsőt)
-  useEffect(() => {
-    const ai = model.blockAtBar(Math.max(bar, 1));
-    if (ai >= 0 && ai !== model.shownBlock) {
-      model.showBlock(ai);
-      bump();
-    }
-  }, [bar, model, bump]);
-
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
       const tag = (ev.target as HTMLElement).tagName;
@@ -277,349 +282,406 @@ function Editor({ row }: { row: SongRow }) {
     nav(songPath(row.id), { state: { back: `/tananyag/dalok/${encodeURIComponent(row.id)}/szerkesztes` } });
   };
 
+  /* ---------- a vászon: kijelölés, vágólap, alsó panel, menük ---------- */
+  const [sel, setSel] = useState<number[]>([]);
+  const anchor = useRef(0);
+  const clip = useRef<BarRef[] | null>(null);
+  const [panel, setPanel] = useState<{ title: string; snap: string } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; sec?: number } | null>(null);
+  const [palTab, setPalTab] = useState<'groove' | 'fill' | 'sec'>('groove');
+  const sheetRef = useRef<HTMLDivElement>(null);
   const S = model.S;
-  const sp = model.spans();
-  const total = model.totalBars();
   const irregular = useMemo(() => irregularBars(S.downbeats).length, [S]);
-  const shown = model.blocks[model.shownBlock];
-  const shownSpan = sp[model.shownBlock];
-  const shownBar = shownSpan ? bar - shownSpan.from : -1;
+  const sorted = [...sel].sort((x, y) => x - y);
 
-  return (
-    <>
-      <TopBar title={title} backTo={back} backLabel={pick('Dalok', 'Songs')}>
-        {row.artist && <p className="top-sub">{row.artist}</p>}
-      </TopBar>
-      <main className="page song-editor">
-        <section className="ed-player">
-          <button className="play-btn" onClick={toggle} disabled={!engine} aria-label={playing ? pick('Szünet', 'Pause') : pick('Lejátszás', 'Play')}>
-            {playing ? (
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z" /></svg>
-            ) : (
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z" /></svg>
-            )}
-          </button>
-          <div className="ed-player-main">
-            <div
-              className="song-progress"
-              onPointerDown={(ev) => {
-                if (!engine) return;
-                const el = ev.currentTarget;
-                const seek = (x: number) => {
-                  const r = el.getBoundingClientRect();
-                  engine.seek(Math.min(1, Math.max(0, (x - r.left) / r.width)) * engine.duration);
-                };
-                el.setPointerCapture(ev.pointerId);
-                seek(ev.clientX);
-                el.onpointermove = (e) => seek(e.clientX);
-                el.onpointerup = () => (el.onpointermove = null);
-              }}
-            >
-              <div id="ed-progress" />
-            </div>
-            <div className="ed-times">
-              <span id="ed-time">0:00</span>
-              <span>{loadErr ? <span className="error-text">{loadErr}</span> : engine ? fmt(engine.duration) : pick('Sávok betöltése…', 'Loading tracks…')}</span>
-            </div>
-          </div>
-        </section>
-
-        <Sections model={model} bar={bar} commit={commit} onJump={seekBar} meta={
-          <>
-            {S.bpm} BPM · {pick('ütem', 'bar')} <b>{Math.max(bar, 1)}</b> / {S.bars}
-            {total !== S.bars && <> · {pick('lista', 'list')}: <em>{total}</em></>}
-            {irregular > 0 && <> · <em title={pick('Ezekben az ütemekben a klikk rohan vagy lassul: TEMPÓ ÚJRA', 'The click races or drags in these bars: RECALCULATE TEMPO')}>⚠ {irregular} {pick('gyanús ütem', 'suspicious bars')}</em></>}
-          </>
-        } footer={
-          <>
-            <button className="btn small" onClick={() => {
-              const at = model.splitBlock(model.barAt(engine?.time() ?? 0));
-              if (at < 0) return setMsg({ text: pick('ez a szekció túl rövid a kettéosztáshoz', 'this section is too short to split'), err: true });
-              commit(() => {});
-              setTimeout(() => (document.querySelector(`.ed-row[data-i="${at}"] .n`) as HTMLInputElement | null)?.select(), 0);
-            }} title={pick('A szekció, amiben épp vagy, kettéválik az aktuális ütemnél — az ütemek kottája a helyén marad', 'The section you are in splits at the current bar; the notation stays in place')}>
-              + {pick('SZEKCIÓ', 'SECTION')}
-            </button>
-            <button className="btn small" disabled={!model.canUndo()} onClick={() => { model.undo(); scheduleSave(); bump(); }} title="Ctrl+Z">↶ {pick('VISSZA', 'UNDO')}</button>
-            <button className="btn small" disabled={!model.canRedo()} onClick={() => { model.redo(); scheduleSave(); bump(); }} title="Ctrl+Y">↷</button>
-            <button className="btn small" disabled={!model.canUndo()} onClick={() => {
-              if (confirm(pick('Minden változtatást visszavonsz, amit a dal megnyitása óta csináltál?', 'Undo every change since you opened the song?'))) { model.reset(); scheduleSave(); bump(); }
-            }}>{pick('ALAPHELYZET', 'RESET')}</button>
-            <button className="btn small" onClick={() => void regrid()} title={pick('Ahol az ütemfelismerés félreütemezett (fél / háromnegyed ütemek, rohanó klikk), egyenletes ütemrácsot épít; a szekciók és a kotta idő szerint átkerülnek', 'Builds a steady bar grid where detection misplaced bars; sections and notation move by time')}>
-              {pick('TEMPÓ ÚJRA', 'RECALC TEMPO')}
-            </button>
-          </>
-        } />
-
-        <section className="ed-sheet">
-          <div className="score-head">
-            <div>
-              <h2>{shown?.name}</h2>
-              <p>{shown && shownSpan ? `${shown.len} ${pick('ütem', 'bars')} · ${shownSpan.from}–${shownSpan.to}${shown.tacet ? ' · tacet' : ''}` : ''}</p>
-            </div>
-            <div className="barnum">
-              <small>{pick('ütem', 'bar')}</small>
-              <b>{Math.max(bar, 1)}</b>
-            </div>
-          </div>
-          <nav className="ed-tabs">
-            {(['groove', 'fill', 'song'] as Tab[]).map((t) => (
-              <button key={t} className={model.tab === t ? 'on' : ''} onClick={() => { model.setTab(t, Math.max(0, shownBar)); bump(); }}>
-                {t === 'groove' ? 'GROOVE' : t === 'fill' ? 'FILLS' : 'SONG'}
-              </button>
-            ))}
-          </nav>
-          {model.tab === 'song' ? (
-            <Strip model={model} shownBar={shownBar} commit={commit} onPick={(j) => {
-              model.selBar = j;
-              engine?.pause();
-              setPlaying(false);
-              if (shownSpan) seekBar(shownSpan.from + j);
-              bump();
-            }} onCut={(text) => setMsg({ text, err: true })} />
-          ) : (
-            <Chips model={model} commit={commit} bump={bump} />
-          )}
-          <PatternEditor model={model} commit={commit} onLibrary={(k) => void toLibrary(k)} />
-        </section>
-
-        <SongMixer engine={engine} />
-
-        <div className="ed-actions">
-          <span className={`ed-msg${msg.err ? ' err' : ''}`}>{msg.text}</span>
-          <select className="ed-folder" value={folder} onChange={(e) => void moveTo(e.target.value)} aria-label={pick('Mappa', 'Folder')}>
-            <option value="">{pick('Nincs mappában', 'No folder')}</option>
-            {folders.map((f) => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-            <option value="+">{pick('+ Új mappa…', '+ New folder…')}</option>
-          </select>
-          <button className="btn ghost" onClick={() => void removeSong()}>
-            {pick('Törlés', 'Delete')}
-          </button>
-          <button className={`btn pub${published ? ' on' : ''}`} onClick={() => void togglePublish()} aria-pressed={published}>
-            {published ? pick('Közzétéve a diákoknak', 'Published to students') : pick('Közzététel a diákoknak', 'Publish to students')}
-          </button>
-          <button className="btn" onClick={() => void saveNow().then((ok) => ok && setMsg({ text: `${pick('Mentve', 'Saved')} · ${new Date().toLocaleTimeString('hu-HU')}` }))}>
-            {pick('MENTÉS', 'SAVE')}
-          </button>
-          <button className="btn primary" onClick={() => void practice()}>
-            {pick('GYAKORLÁS', 'PRACTICE')}
-          </button>
-        </div>
-        <Link className="btn ghost back-link" to={back}>← {pick('Dalok', 'Songs')}</Link>
-      </main>
-    </>
-  );
-}
-
-/* ---------------------------------------------------------------- SZEKCIÓK */
-
-interface SectionsProps {
-  model: EditorModel;
-  bar: number;
-  commit: (fn: () => void) => void;
-  onJump: (bar: number) => void;
-  meta: React.ReactNode;
-  footer: React.ReactNode;
-}
-
-/* a ⋮⋮ fogantyú (egér, toll és érintés egyformán):
-   · húzás egy szekcióra: az lesz a másolata (név, tacet, kotta), a helye és a hossza marad
-   · Alt + húzás két sor közé: ott új szekció a forrás nevével és hosszával, az alatta lévő ütemeiből
-   · kattintás mozgatás nélkül: a lejátszás a szekcióra ugrik */
-function Sections({ model, bar, commit, onJump, meta, footer }: SectionsProps) {
-  const { pick } = useI18n();
-  const list = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ from: number; x: number; y: number; moved: boolean; alt: boolean } | null>(null);
-  const [drop, setDrop] = useState<{ on?: number; before?: number; after?: boolean } | null>(null);
-  const sp = model.spans();
-  const rows = () => [...(list.current?.querySelectorAll<HTMLElement>('.ed-row') ?? [])];
-  const dropIndex = (y: number) => rows().findIndex((r) => {
-    const b = r.getBoundingClientRect();
-    return y >= b.top && y < b.bottom;
-  });
-  const insertIndex = (y: number) => {
-    const i = rows().findIndex((r) => {
-      const b = r.getBoundingClientRect();
-      return y < b.top + b.height / 2;
-    });
-    return i < 0 ? rows().length : i;
-  };
-  const mark = (e: ReactPointerEvent | null) => {
-    const d = drag.current;
-    if (!e || !d) return setDrop(null);
-    if (d.alt) {
-      const at = insertIndex(e.clientY);
-      setDrop(at < model.blocks.length ? { before: at } : { after: true });
+  const pickBar = (gi: number, e: ReactMouseEvent) => {
+    setMenu(null);
+    if (e.shiftKey) {
+      const lo = Math.min(anchor.current, gi), hi = Math.max(anchor.current, gi);
+      setSel(Array.from({ length: hi - lo + 1 }, (_, i) => lo + i));
+    } else if (e.ctrlKey || e.metaKey || e.altKey) {
+      setSel((cur) => (cur.includes(gi) ? cur.filter((x) => x !== gi) : [...cur, gi]));
+      anchor.current = gi;
     } else {
-      const to = dropIndex(e.clientY);
-      setDrop(to >= 0 && to !== d.from ? { on: to } : null);
+      setSel([gi]);
+      anchor.current = gi;
     }
   };
-  const handle = (i: number) => ({
-    onPointerDown: (e: ReactPointerEvent<HTMLButtonElement>) => {
-      if (e.button !== 0) return;
-      e.preventDefault();
-      e.currentTarget.setPointerCapture(e.pointerId);
-      drag.current = { from: i, x: e.clientX, y: e.clientY, moved: false, alt: e.altKey };
-    },
-    onPointerMove: (e: ReactPointerEvent<HTMLButtonElement>) => {
-      const d = drag.current;
-      if (!d) return;
-      d.alt = d.alt || e.altKey;   // az Alt a húzás közben bármikor lenyomható
-      if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 5) return;
-      d.moved = true;
-      document.body.style.cursor = 'copy';
-      mark(e);
-    },
-    onPointerUp: (e: ReactPointerEvent<HTMLButtonElement>) => {
-      const d = drag.current;
-      drag.current = null;
-      setDrop(null);
-      document.body.style.cursor = '';
-      if (!d) return;
-      d.moved = d.moved || Math.hypot(e.clientX - d.x, e.clientY - d.y) >= 5;
-      if (!d.moved) return onJump(sp[i].from);   // sima kattintás = ugrás
-      if (d.alt || e.altKey) return commit(() => model.insertCopy(d.from, insertIndex(e.clientY)));
-      const to = dropIndex(e.clientY);
-      if (to >= 0 && to !== d.from) commit(() => model.copyOnto(d.from, to));
-    },
-    onPointerCancel: () => {
-      drag.current = null;
-      setDrop(null);
-      document.body.style.cursor = '';
-    },
-  });
-  const active = model.blockAtBar(Math.max(bar, 1));
-
-  return (
-    <section className="ed-sections">
-      <div className="ed-sec-head">
-        <h3>{pick('SZEKCIÓK', 'SECTIONS')}</h3>
-        <span className="ed-meta">{meta}</span>
-      </div>
-      <div className="ed-row ed-row-head">
-        <span />
-        <span>{pick('NÉV', 'NAME')}</span>
-        <span>{pick('-TÓL', 'FROM')}</span>
-        <span>{pick('-IG', 'TO')}</span>
-        <span title={pick('tacet: dob nélkül', 'tacet: no drums')}>T</span>
-        <span />
-      </div>
-      <div className="ed-list" ref={list}>
-        {model.blocks.map((b, i) => (
-          <div
-            key={i}
-            data-i={i}
-            className={`ed-row${i === active ? ' active' : ''}${drop?.on === i ? ' drop-on' : ''}${drop?.before === i ? ' drop-before' : ''}${drop?.after && i === model.blocks.length - 1 ? ' drop-after' : ''}`}
-          >
-            <button className="handle" {...handle(i)} title={pick('Kattintás: ugrás ide · Húzás egy szekcióra: az lesz a másolata · Alt + húzás két sor közé: új szekció ott, az alatta lévő ütemeiből', 'Click: jump here · Drag onto a section: it becomes a copy · Alt + drag between rows: insert a copy there')}>
-              ⋮⋮
-            </button>
-            <input className="n" value={b.name} onChange={(e) => commit(() => model.rename(i, e.target.value))} aria-label={pick('Szekció neve', 'Section name')} />
-            <NumInput value={sp[i].from} readOnly={i === 0} onCommit={(v) => commit(() => model.setFrom(i, v))} label={pick('-tól', 'from')} />
-            <NumInput value={sp[i].to} onCommit={(v) => commit(() => model.setTo(i, v))} label={pick('-ig', 'to')} />
-            <input type="checkbox" checked={b.tacet} onChange={(e) => commit(() => model.setTacet(i, e.target.checked))} title={pick('tacet: ebben a szekcióban nincs dob', 'tacet: no drums in this section')} />
-            <button className="del" onClick={() => commit(() => model.mergeBlock(i))} title={pick('Összevonás az előző szekcióval (az ütemek kottája megmarad)', 'Merge with the previous section (notation stays)')} disabled={model.blocks.length < 2}>
-              ×
-            </button>
-          </div>
-        ))}
-      </div>
-      <div className="ed-sec-foot">{footer}</div>
-    </section>
-  );
-}
-
-/** szám mező, ami csak Enterre / elhagyáskor ír (gépelés közben nem ugrálnak a határok) */
-function NumInput({ value, onCommit, readOnly, label }: { value: number; onCommit: (v: number) => void; readOnly?: boolean; label: string }) {
-  const [v, setV] = useState(String(value));
-  const [focus, setFocus] = useState(false);
-  useEffect(() => {
-    if (!focus) setV(String(value));
-  }, [value, focus]);
-  const done = () => {
-    if (+v !== value && v.trim()) onCommit(+v);
-    else setV(String(value));
+  const openBar = (gi: number) => {
+    const snap = model.snap();
+    model.openBar(gi);
+    setSel([gi]);
+    anchor.current = gi;
+    setMenu(null);
+    setPanel({ title: `${gi + 1}. ${pick('ütem', 'bar')}`, snap });
+    bump();
   };
+  const openPattern = (k: string) => {
+    const snap = model.snap();
+    model.openPattern(k);
+    setPanel({ title: model.pname(k), snap });
+    bump();
+  };
+  const closePanel = (ok: boolean) => {
+    if (!panel) return;
+    if (!ok) model.restoreSnap(panel.snap);
+    setPanel(null);
+    commit(() => {});
+  };
+  const copy = () => {
+    if (!sorted.length) return;
+    clip.current = sorted.map((gi) => model.refAt(gi));
+    setMsg({ text: pick(`másolva: ${sorted.length} ütem`, `copied: ${sorted.length} bars`) });
+  };
+  const paste = () => {
+    if (!clip.current) return setMsg({ text: pick('A vágólap üres (Ctrl+C)', 'The clipboard is empty (Ctrl+C)'), err: true });
+    if (!sorted.length) return;
+    commit(() => model.pasteRefs(sorted, clip.current!));
+  };
+  const clear = () => sorted.length && commit(() => model.placeOn(sorted, null));
+  const lineBreak = () => sorted.length && commit(() => model.toggleBreak(sorted[sorted.length - 1]));
+  const saveAs = (type: PatternType) => {
+    if (!sorted.length) return;
+    const name = prompt(type === 'fill' ? pick('A fill neve:', 'Fill name:') : pick('A groove neve:', 'Groove name:'))?.trim();
+    if (!name) return;
+    commit(() => model.saveAsElement(sorted, name, type));
+    setPalTab(type);
+    setMsg({ text: pick(`„${name}” bekerült a ${type === 'fill' ? 'fillek' : 'groove-ok'} közé`, `"${name}" added to the ${type === 'fill' ? 'fills' : 'grooves'}`) });
+  };
+  const newSection = (gi: number, name?: string) => {
+    const n = (name ?? prompt(pick('A szekció neve:', 'Section name:'), 'VERSE'))?.trim().toUpperCase();
+    if (n) commit(() => model.addSectionAt(gi, n));
+  };
+
+  // billentyűk a vásznon (beviteli mezőben és nyitott panel mellett nem)
+  useEffect(() => {
+    const onKey = (ev: KeyboardEvent) => {
+      const tag = (ev.target as HTMLElement).tagName;
+      if (/INPUT|SELECT|TEXTAREA/.test(tag)) return;
+      if (ev.key === 'Escape') {
+        if (menu) setMenu(null);
+        else if (panel) closePanel(false);
+        return;
+      }
+      if (panel) return;
+      const ctrl = ev.ctrlKey || ev.metaKey, k = ev.key.toLowerCase();
+      if (ctrl && k === 'c') { ev.preventDefault(); copy(); }
+      else if (ctrl && k === 'v') { ev.preventDefault(); paste(); }
+      else if (ev.key === 'Delete' || ev.key === 'Backspace') { ev.preventDefault(); clear(); }
+      else if (ev.key === 'Enter') { ev.preventDefault(); lineBreak(); }
+      else if (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') {
+        ev.preventDefault();
+        const n = model.totalBars(), from = sorted.length ? (ev.key === 'ArrowRight' ? sorted[sorted.length - 1] : sorted[0]) : 0;
+        const gi = Math.max(0, Math.min(n - 1, from + (ev.key === 'ArrowRight' ? 1 : -1)));
+        setSel([gi]);
+        anchor.current = gi;
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
+  // lejátszás közben a szóló ütem látszik a vásznon
+  useEffect(() => {
+    if (!playing || bar < 1) return;
+    sheetRef.current?.querySelector(`[data-gi="${bar - 1}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [bar, playing]);
+
+  /* ---------- húzás: a bal panelről (groove, fill, szekció) és a szekciójelölők ---------- */
+  const onDrop = (gi: number | null, secIdx: number | null) => (e: ReactDragEvent) => {
+    e.preventDefault();
+    sheetRef.current?.querySelectorAll('.drop').forEach((x) => x.classList.remove('drop'));
+    const data = e.dataTransfer.getData('text/plain');
+    if (data.startsWith('pat:')) {
+      const k = data.slice(4);
+      if (secIdx !== null) return commit(() => model.fillSection(secIdx, k));
+      if (gi === null) return;
+      commit(() => model.placeOn(sel.includes(gi) ? sorted : [gi], k));
+    } else if (data.startsWith('sec:') && gi !== null) newSection(gi, data.slice(4));
+  };
+  const onDragOver = (e: ReactDragEvent) => {
+    e.preventDefault();
+    sheetRef.current?.querySelectorAll('.drop').forEach((x) => x.classList.remove('drop'));
+    (e.currentTarget as HTMLElement).classList.add('drop');
+  };
+  const pinDrag = useRef<{ i: number; moved: boolean; x: number; y: number } | null>(null);
+  const barUnder = (x: number, y: number) => {
+    const el = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest<HTMLElement>('[data-gi]');
+    return el ? +el.dataset.gi! : null;
+  };
+
+  const rows = model.rowsLayout();
+  const sp = model.spans();
+  const startOf = new Map(sp.map((x, i) => [x.from - 1, i]));
+  const flat = model.flatBars();
+  const nowBar = playing ? bar - 1 : -1;
+
   return (
-    <input
-      type="number" min={1} value={v} readOnly={readOnly} aria-label={label}
-      onFocus={() => setFocus(true)}
-      onBlur={() => { setFocus(false); done(); }}
-      onChange={(e) => setV(e.target.value)}
-      onKeyDown={(e: ReactKeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
-    />
-  );
-}
+    <div className="se">
+      <header className="se-top">
+        <Link className="se-back" to={back} aria-label={pick('Vissza a dalokhoz', 'Back to songs')}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+        </Link>
+        <button className="se-play" onClick={toggle} disabled={!engine} aria-label={playing ? pick('Szünet', 'Pause') : pick('Lejátszás', 'Play')}>
+          {playing ? <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z" /></svg> : <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z" /></svg>}
+        </button>
+        <div className="se-title">
+          <b>{title}{row.artist ? ` – ${row.artist}` : ''}</b>
+          <div
+            className="se-progress"
+            onPointerDown={(ev) => {
+              if (!engine) return;
+              const el = ev.currentTarget;
+              const seek = (x: number) => {
+                const r = el.getBoundingClientRect();
+                engine.seek(Math.min(1, Math.max(0, (x - r.left) / r.width)) * engine.duration);
+              };
+              el.setPointerCapture(ev.pointerId);
+              seek(ev.clientX);
+              el.onpointermove = (e) => seek(e.clientX);
+              el.onpointerup = () => (el.onpointermove = null);
+            }}
+          >
+            <div id="ed-progress" />
+          </div>
+          <small>
+            <span id="ed-time">0:00</span> / {loadErr ? <span className="error-text">{loadErr}</span> : engine ? fmt(engine.duration) : pick('sávok betöltése…', 'loading tracks…')}
+            {' · '}{S.bpm} BPM
+            {irregular > 0 && <em title={pick('Ezekben az ütemekben a klikk rohan vagy lassul: TEMPÓ ÚJRA', 'The click races or drags in these bars: RECALC TEMPO')}> · ⚠ {irregular} {pick('gyanús ütem', 'suspicious bars')}</em>}
+          </small>
+        </div>
+        <div className="se-bars">{pick('ÜTEM', 'BAR')} <b>{Math.max(bar, 1)}</b><span>/{model.totalBars()}</span></div>
+        <div className="se-tools">
+          <button className="se-tool" disabled={!model.canUndo()} onClick={() => { model.undo(); scheduleSave(); bump(); }} aria-label={pick('Vissza (Ctrl+Z)', 'Undo (Ctrl+Z)')} title="Ctrl+Z">↶</button>
+          <button className="se-tool" disabled={!model.canRedo()} onClick={() => { model.redo(); scheduleSave(); bump(); }} aria-label={pick('Előre (Ctrl+Y)', 'Redo (Ctrl+Y)')} title="Ctrl+Y">↷</button>
+          <button className="se-tool" onClick={() => void regrid()} title={pick('Ahol az ütemfelismerés félreütemezett, egyenletes ütemrácsot épít; a szekciók és a kotta idő szerint átkerülnek', 'Builds a steady bar grid where detection misplaced bars')}>{pick('TEMPÓ ÚJRA', 'RECALC TEMPO')}</button>
+          <label className="se-tool se-check"><input type="checkbox" checked={published} onChange={() => void togglePublish()} />{pick('KÖZZÉTÉVE', 'PUBLISHED')}</label>
+          <select className="se-tool se-folder" value={folder} onChange={(e) => void moveTo(e.target.value)} aria-label={pick('Mappa', 'Folder')}>
+            <option value="">{pick('Nincs mappában', 'No folder')}</option>
+            {folders.map((f) => <option key={f} value={f}>{f}</option>)}
+            <option value="+">{pick('+ Új mappa…', '+ New folder…')}</option>
+          </select>
+          <button className="se-tool" onClick={() => void removeSong()}>{pick('TÖRLÉS', 'DELETE')}</button>
+          <div className="se-save">
+            <button onClick={() => void saveNow().then((ok) => ok && setMsg({ text: `${pick('mentve', 'saved')} · ${new Date().toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' })}` }))}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 4h11l3 3v13H5z" /><path d="M8 4v5h7V4M8 20v-6h8v6" /></svg>
+              {pick('MENTÉS', 'SAVE')}
+            </button>
+            <small className={msg.err ? 'err' : ''}>{msg.text}</small>
+          </div>
+        </div>
+        <div className="se-mode">
+          <button className="on" aria-pressed="true">EDIT</button>
+          <button onClick={() => void practice()}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5" /><path d="M11 18.5h2" /></svg>
+            PREVIEW
+          </button>
+        </div>
+      </header>
 
-/* ---------------------------------------------------------------- GROOVE / FILLS: elemek */
+      <div className="se-body">
+        <Palette model={model} tab={palTab} onTab={setPalTab} onEdit={openPattern} onLibrary={(k) => void toLibrary(k)} />
 
-function Chips({ model, commit, bump }: { model: EditorModel; commit: (fn: () => void) => void; bump: () => void }) {
-  const { pick } = useI18n();
-  const type = model.tab === 'fill' ? 'fill' : 'groove';
-  const uses = model.useCount();
-  const lenBadge = (k: string) => (model.plen(k) > 1 ? <i>{model.plen(k)}ü</i> : null);
-  const chip = (k: string, cls: string) => (
-    <button key={k} className={`ed-chip ${cls}${type === 'fill' ? ' fill' : ''}${k === model.selPat ? ' on' : ''}`} title={pick(`${uses[k] || 0} ütemben szerepel`, `used in ${uses[k] || 0} bars`)} onClick={() => { model.selectPattern(k); bump(); }}>
-      {model.patterns[k].name}
-      {lenBadge(k)}
-      <small>{uses[k] || 0}×</small>
-    </button>
-  );
-  return (
-    <div className="ed-chips">
-      {model.cores(type).flatMap((c) => [chip(c.key, c.inSection ? '' : 'other'), ...c.variants.map((v) => chip(v, 'var'))])}
-      <button className="ed-chip add" onClick={() => commit(() => model.newPattern({ name: type === 'fill' ? 'Új fill' : 'Új groove', type, len: 1, beats: ['-', '-', '-', '-'] }))}>
-        {type === 'fill' ? pick('+ ÚJ FILL', '+ NEW FILL') : pick('+ ÚJ GROOVE', '+ NEW GROOVE')}
-      </button>
-    </div>
-  );
-}
+        <main className="se-canvas" onClick={(e) => e.target === e.currentTarget && setSel([])}>
+          <div className="se-sheet" ref={sheetRef}>
+            <h1>{title}</h1>
+            <p className="se-sub">{[row.artist, `${S.bpm} BPM`, `${model.totalBars()} ${pick('ütem', 'bars')}`].filter(Boolean).join(' · ')}</p>
+            {rows.map((r) => {
+              const si = startOf.get(r[0]);
+              const blk = si !== undefined ? model.blocks[si] : null;
+              return (
+                <div key={r[0]} className={`se-row${blk ? ' sec' : ''}`}>
+                  {blk && si !== undefined && (
+                    <>
+                      <span className="se-rule" aria-hidden="true" />
+                      <button
+                        className={`se-pin${blk.tacet ? ' tacet' : ''}`}
+                        title={pick('Húzd egy ütemre: ott kezdődik a szekció · ráhúzott groove: az egész szekciót kitölti · jobb klikk: átnevezés, tacet, törlés', 'Drag onto a bar: the section starts there · drop a groove: fills the section · right-click: rename, tacet, delete')}
+                        onPointerDown={(e) => {
+                          if (e.button !== 0) return;
+                          try {
+                            e.currentTarget.setPointerCapture(e.pointerId);
+                          } catch {
+                            /* a mutató már nincs lenyomva */
+                          }
+                          pinDrag.current = { i: si, moved: false, x: e.clientX, y: e.clientY };
+                        }}
+                        onPointerMove={(e) => {
+                          const d = pinDrag.current;
+                          if (!d) return;
+                          if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 5) return;
+                          d.moved = true;
+                          sheetRef.current?.querySelectorAll('.drop').forEach((x) => x.classList.remove('drop'));
+                          const gi = barUnder(e.clientX, e.clientY);
+                          if (gi !== null) sheetRef.current?.querySelector(`[data-gi="${gi}"]`)?.classList.add('drop');
+                        }}
+                        onPointerUp={(e) => {
+                          const d = pinDrag.current;
+                          pinDrag.current = null;
+                          sheetRef.current?.querySelectorAll('.drop').forEach((x) => x.classList.remove('drop'));
+                          if (!d) return;
+                          if (!d.moved) return seekBar(sp[si].from);
+                          const gi = barUnder(e.clientX, e.clientY);
+                          if (gi !== null && gi !== sp[si].from - 1) commit(() => model.moveSectionStart(si, gi));
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setMenu({ x: e.clientX, y: e.clientY, sec: si });
+                        }}
+                        onDragOver={onDragOver}
+                        onDrop={onDrop(null, si)}
+                      >
+                        {blk.name}{blk.tacet ? ' · TACET' : ''}
+                      </button>
+                    </>
+                  )}
+                  {r.map((gi) => {
+                    const ref = flat[gi], ok = model.okRef(ref), p = ok ? model.patterns[keyOf(ref)!] : null;
+                    const tag = !p ? '' : p.draft ? pick('saját', 'own') : model.pname(ref);
+                    const tagCls = !p ? '' : p.draft ? ' own' : p.type === 'fill' ? ' fill' : p.variantOf ? ' var' : '';
+                    const tacet = model.blocks[model.blockOfBar(gi)]?.tacet;
+                    return (
+                      <button
+                        key={gi}
+                        data-gi={gi}
+                        className={`se-bar${sel.includes(gi) ? ' sel' : ''}${gi === nowBar ? ' now' : ''}${tacet ? ' tacet' : ''}`}
+                        onClick={(e) => pickBar(gi, e)}
+                        onDoubleClick={() => openBar(gi)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          if (!sel.includes(gi)) { setSel([gi]); anchor.current = gi; }
+                          setMenu({ x: e.clientX, y: e.clientY });
+                        }}
+                        onDragOver={onDragOver}
+                        onDragLeave={(e) => e.currentTarget.classList.remove('drop')}
+                        onDrop={onDrop(gi, null)}
+                        aria-label={`${gi + 1}. ${pick('ütem', 'bar')}${tag ? ` · ${tag}` : ''}`}
+                      >
+                        {tag && <span className={`se-tag${tagCls}`}>{tag}{p && model.plen(keyOf(ref)) > 1 ? ` ${partOf(ref)}/${model.plen(keyOf(ref))}` : ''}</span>}
+                        <span className="se-notes" dangerouslySetInnerHTML={{ __html: barSvgCached(model.partBeats(ref), model.partHands(ref), gi + 1, model.isFillKey(ref)) }} />
+                        {model.breaks.has(gi) && <span className="se-break" title={pick('Kézi sortörés (Enter)', 'Manual line break (Enter)')}>↵</span>}
+                      </button>
+                    );
+                  })}
+                  {Array.from({ length: Math.max(0, 4 - r.length) }, (_, i) => <span key={`f${i}`} className="se-bar ghost" aria-hidden="true" />)}
+                </div>
+              );
+            })}
+          </div>
+          <p className="se-keys">{pick('Kattintás: kijelölés · Shift: tartomány · Ctrl: hozzáadás · dupla katt: szerkesztés · jobb klikk: menü · Ctrl+C / Ctrl+V · Enter: sortörés · Delete: ürítés · a szekciójelölőket húzd', 'Click: select · Shift: range · Ctrl: add · double-click: edit · right-click: menu · Ctrl+C / Ctrl+V · Enter: line break · Delete: clear · drag the section markers')}</p>
+        </main>
 
-/* ---------------------------------------------------------------- SONG: a szekció ütemei */
+        <aside className="se-mixer">
+          <SongMixer engine={engine} variant="console" />
+        </aside>
+      </div>
 
-function Strip({ model, shownBar, commit, onPick, onCut }: { model: EditorModel; shownBar: number; commit: (fn: () => void) => void; onPick: (j: number) => void; onCut: (text: string) => void }) {
-  const { pick } = useI18n();
-  const b = model.blocks[model.shownBlock], sp = model.spans()[model.shownBlock];
-  if (!b || !sp) return null;
-  const options = (['groove', 'fill'] as const).flatMap((t) =>
-    model.cores(t).flatMap((c) => [c.key, ...c.variants]).map((v) => {
-      const p = model.patterns[v];
-      const label = p.variantOf ? `  ↳ ${model.pname(v)}` : `${t === 'fill' ? 'FILL · ' : ''}${p.name}`;
-      return <option key={v} value={v}>{label}{model.plen(v) > 1 ? ` · ${model.plen(v)} ütem` : ''}</option>;
-    }));
-  return (
-    <div className="ed-strip">
-      {b.tacet && (
-        <div className="ed-tacet">
-          <b>TACET</b>
-          <span>{pick('a dob nagyrészt kiesik · egy-egy ütembe (pl. beszállás) így is írhatsz', 'the drums mostly sit out · you can still write single bars (e.g. a pickup)')}</span>
+      {panel && (
+        <section className="se-panel" aria-label={pick('Ütem szerkesztése', 'Edit bar')}>
+          <div className="se-panel-head">
+            <h2>{panel.title}</h2>
+            <span>{model.tab === 'song' ? pick('Egy groove-os ütem átírva variáció lesz; a groove maga nem változik.', 'Editing a groove bar makes a variation; the groove itself stays.') : pick('Az elemet minden ütem játssza, ahol szerepel.', 'Every bar using this part changes.')}</span>
+            <span className="sp" />
+            <button className="se-round" onClick={() => closePanel(false)} aria-label={pick('Mégse (Esc)', 'Cancel (Esc)')}>✕</button>
+            <button className="se-round ok" onClick={() => closePanel(true)} aria-label={pick('Kész', 'Done')}>✓</button>
+          </div>
+          <PatternEditor model={model} commit={commit} onLibrary={(k) => void toLibrary(k)} />
+        </section>
+      )}
+
+      {menu && (
+        <div className="se-menu" role="menu" style={{ left: Math.min(menu.x, window.innerWidth - 270), top: Math.min(menu.y, window.innerHeight - 380) }} onClick={() => setMenu(null)}>
+          {menu.sec === undefined ? (
+            <>
+              <button className="main" onClick={() => saveAs('groove')}>{pick('Mentés groove-ként…', 'Save as groove…')}</button>
+              <button className="main" onClick={() => saveAs('fill')}>{pick('Mentés fillként…', 'Save as fill…')}</button>
+              <hr />
+              <button onClick={() => sorted.length && openBar(sorted[0])}>{pick('Szerkesztés', 'Edit')}<small>{pick('dupla katt', 'double-click')}</small></button>
+              <button onClick={copy}>{pick('Másolás', 'Copy')}<small>Ctrl+C</small></button>
+              <button onClick={paste}>{pick('Beillesztés', 'Paste')}<small>Ctrl+V</small></button>
+              <button onClick={clear}>{pick('Ürítés', 'Clear')}<small>Del</small></button>
+              {sorted.length > 0 && model.okRef(model.refAt(sorted[0])) && !model.patterns[keyOf(model.refAt(sorted[0]))!].draft && (
+                <button onClick={() => void toLibrary(model.baseOf(model.refAt(sorted[0]))!)}>{pick('Tananyagba (a dal hangjával)', 'To library (with the song audio)')}</button>
+              )}
+              <hr />
+              <button onClick={lineBreak}>{pick('Sortörés utána', 'Line break after')}<small>Enter</small></button>
+              <button onClick={() => sorted.length && newSection(sorted[0])}>{pick('Új szekció itt…', 'New section here…')}</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => {
+                const n = prompt(pick('A szekció neve:', 'Section name:'), model.blocks[menu.sec!].name)?.trim();
+                if (n) commit(() => model.rename(menu.sec!, n));
+              }}>{pick('Átnevezés…', 'Rename…')}</button>
+              <button onClick={() => commit(() => model.setTacet(menu.sec!, !model.blocks[menu.sec!].tacet))}>
+                {model.blocks[menu.sec].tacet ? pick('Van benne dob (tacet ki)', 'Drums play (tacet off)') : pick('Tacet: nincs benne dob', 'Tacet: no drums')}
+              </button>
+              {model.blocks.length > 1 && (
+                <button onClick={() => commit(() => model.mergeBlock(menu.sec!))}>{pick('Szekció törlése (összevonás az előzővel)', 'Delete section (merge with previous)')}</button>
+              )}
+            </>
+          )}
         </div>
       )}
-      {b.bars.map((r, j) => {
-        const L = model.okRef(r) ? model.plen(keyOf(r)) : 1;
-        return (
-          <div key={j} className={`ed-bar${model.isFillKey(r) ? ' isfill' : ''}${j === model.selBar ? ' sel' : ''}${j === shownBar ? ' now' : ''}${L > 1 ? ` multi${partOf(r) > 1 ? ' cont' : ''}` : ''}`}>
-            {L > 1 && <span className="part">{partOf(r)}/{L}</span>}
-            <div className="ed-bar-svg" onClick={() => onPick(j)} dangerouslySetInnerHTML={{ __html: barSvg(model.partBeats(r), model.partHands(r), sp.from + j, model.isFillKey(r)) }} />
-            <select
-              value={keyOf(r) ?? ''}
-              aria-label={pick(`${sp.from + j}. ütem mintája`, `pattern of bar ${sp.from + j}`)}
-              onChange={(e) => commit(() => {
-                const k = e.target.value || null;
-                const n = model.placeAt(j, k);
-                if (k && n < model.plen(k)) onCut(pick(`„${model.pname(k)}” ${model.plen(k)} ütemes — a szekció végén levágva (${n} ütem)`, `"${model.pname(k)}" is ${model.plen(k)} bars — cut at the end of the section (${n} bars)`));
-              })}
-            >
-              <option value="">{pick('— szünet —', '— rest —')}</option>
-              {options}
-            </select>
-          </div>
-        );
-      })}
     </div>
+  );
+}
+
+/* ---------------------------------------------------------------- bal panel: groove-ok, fillek, szekciójelölők */
+
+function Palette({ model, tab, onTab, onEdit, onLibrary }: { model: EditorModel; tab: 'groove' | 'fill' | 'sec'; onTab: (t: 'groove' | 'fill' | 'sec') => void; onEdit: (k: string) => void; onLibrary: (k: string) => void }) {
+  const { pick } = useI18n();
+  const uses = model.useCount();
+  const drag = (data: string) => (e: ReactDragEvent) => {
+    e.dataTransfer.setData('text/plain', data);
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+  const card = (k: string, variant: boolean) => {
+    const p = model.patterns[k];
+    return (
+      <div key={k} className={`se-el${p.type === 'fill' ? ' fill' : ''}${variant ? ' var' : ''}`} draggable onDragStart={drag(`pat:${k}`)}>
+        <header>
+          <span className="grip" aria-hidden="true">⋮⋮</span>
+          <b>{variant ? `↳ ${p.name}` : p.name}</b>
+          <small>{Math.ceil((uses[k] || 0) / model.plen(k))}×{model.plen(k) > 1 ? ` · ${model.plen(k)} ${pick('ütem', 'bars')}` : ''}</small>
+          <button onClick={() => onEdit(k)} aria-label={`${pick('Szerkesztés', 'Edit')}: ${p.name}`} title={pick('Szerkesztés (minden helyén változik)', 'Edit (changes everywhere)')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" aria-hidden="true"><path d="M4 20l1-5L16 4l4 4L9 19l-5 1z" /></svg>
+          </button>
+          <button onClick={() => onLibrary(k)} aria-label={`${pick('Tananyagba', 'To library')}: ${p.name}`} title={pick('Tananyagba, a dal hangjával', 'To library, with the song audio')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z" /></svg>
+          </button>
+        </header>
+        <span className="se-el-notes" dangerouslySetInnerHTML={{ __html: barSvgCached(p.beats.slice(0, 4), p.hands?.slice(0, 4) ?? null, '', p.type === 'fill') }} />
+      </div>
+    );
+  };
+  return (
+    <aside className="se-palette">
+      <nav className="se-tabs">
+        {([['groove', pick('GROOVE-OK', 'GROOVES')], ['fill', pick('FILLEK', 'FILLS')], ['sec', pick('SZEKCIÓK', 'SECTIONS')]] as const).map(([t, label]) => (
+          <button key={t} className={tab === t ? 'on' : ''} onClick={() => onTab(t)}>{label}</button>
+        ))}
+      </nav>
+      <div className="se-pal-list">
+        {tab === 'sec' ? (
+          <>
+            <p className="hint">{pick('Húzd egy ütemre: ott kezdődik a szekció. A második VERSE neve VERSE 2 lesz.', 'Drag onto a bar: the section starts there. A second VERSE becomes VERSE 2.')}</p>
+            <div className="se-markers">
+              {['INTRO', 'VERSE', 'PRE-CHORUS', 'REFRÉN', 'BRIDGE', 'OUTRO'].map((n) => (
+                <span key={n} className="se-marker" draggable onDragStart={drag(`sec:${n}`)}>{n}</span>
+              ))}
+            </div>
+            <p className="hint">{pick('Saját név: jobb klikk egy ütemen → Új szekció itt. A kottán lévő jelölőket fel-le húzhatod; jobb klikkel átnevezheted, tacetre állíthatod vagy törölheted.', 'Own name: right-click a bar → New section here. Drag the markers on the sheet; right-click to rename, set tacet or delete.')}</p>
+          </>
+        ) : (
+          <>
+            <p className="hint">{pick('Húzd egy ütemre, a kijelölésre vagy egy szekciójelölőre (az egész szekciót kitölti).', 'Drag onto a bar, the selection or a section marker (fills the whole section).')}</p>
+            {model.cores(tab).flatMap((c) => [card(c.key, false), ...c.variants.map((v) => card(v, true))])}
+            {!model.cores(tab).length && <p className="hint">{pick(`Még nincs. Jobb klikk egy ütemen → „Mentés ${tab === 'fill' ? 'fillként' : 'groove-ként'}”.`, `None yet. Right-click a bar → "Save as ${tab}".`)}</p>}
+          </>
+        )}
+      </div>
+    </aside>
   );
 }
 
