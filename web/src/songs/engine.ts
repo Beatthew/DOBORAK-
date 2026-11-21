@@ -1,3 +1,4 @@
+import { iosPlayback } from '../audio/iosAudio';
 import type { SongData } from './types';
 
 /* A Song Practice motorja, felület nélkül.
@@ -143,6 +144,7 @@ export class SongEngine {
   }
 
   play() {
+    iosPlayback(true);
     void this.ctx.resume();
     this.playing = true;
     this.t0 = null;
@@ -223,6 +225,7 @@ export class SongEngine {
     this.st?.schedule({ active: false });
     this.playing = false;
     this.t0 = null;
+    iosPlayback(false);
   }
 
   seek(t: number) {

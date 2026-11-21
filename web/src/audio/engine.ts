@@ -1,4 +1,5 @@
 import type { Beats } from '../songs/types';
+import { iosPlayback } from './iosAudio';
 import type { Cymbal, Drum, Exercise, Fill, Groove } from '../types';
 import crashUrl from './samples/crash.wav';
 import floortomUrl from './samples/floortom.wav';
@@ -254,6 +255,7 @@ export class Player {
     const seq = bars.flatMap((bar) => Array.from({ length: bar.steps }, (_, i) => ({ bar, i })));
     if (!c || seq.length === 0) return false;
     const run = ++this.run;
+    iosPlayback(true);
     void c.resume();
     await preloadSamples();
     if (this.run !== run) return false;
@@ -297,6 +299,7 @@ export class Player {
 
   stop() {
     this.run += 1;
+    iosPlayback(false);
     if (this.interval !== null) window.clearInterval(this.interval);
     this.interval = null;
     this.timeouts.forEach((id) => window.clearTimeout(id));
